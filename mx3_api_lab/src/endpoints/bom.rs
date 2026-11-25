@@ -26,7 +26,7 @@ impl BomId {
     }
 
     pub fn hack(id: i32) -> Self {
-        BomId(id)
+        Self(id)
     }
 }
 
@@ -154,7 +154,7 @@ impl MxClient {
     pub fn create_bom(&self, create_bom: &CreateBom, marker: &'static str) -> Promise<BomId> {
         let (req, rx) = RequestInitiator::post_json_arg("create_bom".into(), create_bom);
         match self.request_tx.send(req) {
-            Ok(_) => Promise::waiting(rx, marker),
+            Ok(()) => Promise::waiting(rx, marker),
             Err(_) => Promise::error(Error::RequestDispatcherNotAvailable, marker),
         }
     }
@@ -162,7 +162,7 @@ impl MxClient {
     pub fn get_bom(&self, id: BomId, marker: &'static str) -> Promise<Bom> {
         let (req, rx) = RequestInitiator::post_json_arg("get_bom".into(), &id);
         match self.request_tx.send(req) {
-            Ok(_) => Promise::waiting(rx, marker),
+            Ok(()) => Promise::waiting(rx, marker),
             Err(_) => Promise::error(Error::RequestDispatcherNotAvailable, marker),
         }
     }
@@ -170,7 +170,7 @@ impl MxClient {
     pub fn get_bom_headers(&self, marker: &'static str) -> Promise<Vec<BomHeader>> {
         let (req, rx) = RequestInitiator::get_no_args("get_bom_headers".into());
         match self.request_tx.send(req) {
-            Ok(_) => Promise::waiting(rx, marker),
+            Ok(()) => Promise::waiting(rx, marker),
             Err(_) => Promise::error(Error::RequestDispatcherNotAvailable, marker),
         }
     }
@@ -182,7 +182,7 @@ impl MxClient {
     ) -> Promise<()> {
         let (req, rx) = RequestInitiator::post_json_arg(EP_CONFIRM_CANDIDATES.into(), q);
         match self.request_tx.send(req) {
-            Ok(_) => Promise::waiting(rx, marker),
+            Ok(()) => Promise::waiting(rx, marker),
             Err(_) => Promise::error(Error::RequestDispatcherNotAvailable, marker),
         }
     }
@@ -194,7 +194,7 @@ impl MxClient {
     ) -> Promise<()> {
         let (req, rx) = RequestInitiator::post_json_arg(EP_DROP_CANDIDATES.into(), q);
         match self.request_tx.send(req) {
-            Ok(_) => Promise::waiting(rx, marker),
+            Ok(()) => Promise::waiting(rx, marker),
             Err(_) => Promise::error(Error::RequestDispatcherNotAvailable, marker),
         }
     }
@@ -207,7 +207,7 @@ impl MxClient {
     ) -> Promise<()> {
         let (req, rx) = RequestInitiator::post_json_arg(EP_REMOVE_CHOICES.into(), q);
         match self.request_tx.send(req) {
-            Ok(_) => Promise::waiting(rx, marker),
+            Ok(()) => Promise::waiting(rx, marker),
             Err(_) => Promise::error(Error::RequestDispatcherNotAvailable, marker),
         }
     }
@@ -215,11 +215,15 @@ impl MxClient {
     pub fn bom_xlsx(&self, q: &BomXlsxRequest, marker: &'static str) -> Promise<BomXlsxFile> {
         let (req, rx) = RequestInitiator::post_json_arg(EP_BOM_XLSX.into(), q);
         match self.request_tx.send(req) {
-            Ok(_) => Promise::waiting(rx, marker),
+            Ok(()) => Promise::waiting(rx, marker),
             Err(_) => Promise::error(Error::RequestDispatcherNotAvailable, marker),
         }
     }
 
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "public signature mx3's callers use; changing it is its own API change"
+    )]
     pub fn add_bom_item_part_choices(
         &self,
         add: AddBomItemPartChoices,
@@ -227,7 +231,7 @@ impl MxClient {
     ) -> Promise<()> {
         let (req, rx) = RequestInitiator::post_json_arg("add_bom_item_part_choices".into(), &add);
         match self.request_tx.send(req) {
-            Ok(_) => Promise::waiting(rx, marker),
+            Ok(()) => Promise::waiting(rx, marker),
             Err(_) => Promise::error(Error::RequestDispatcherNotAvailable, marker),
         }
     }
@@ -236,7 +240,7 @@ impl MxClient {
     pub fn set_bom_item_match(&self, q: &SetBomItemMatch, marker: &'static str) -> Promise<()> {
         let (req, rx) = RequestInitiator::post_json_arg(EP_SET_MATCH.into(), q);
         match self.request_tx.send(req) {
-            Ok(_) => Promise::waiting(rx, marker),
+            Ok(()) => Promise::waiting(rx, marker),
             Err(_) => Promise::error(Error::RequestDispatcherNotAvailable, marker),
         }
     }
@@ -310,7 +314,7 @@ pub struct BomItem {
     pub candidates: Vec<PartId>,
     pub parameters: Vec<Resolved>,
     /// BOM-26: lines with the same text must use one MPN for the whole build quantity of a board, never mixed
-    /// between suppliers or reels of different part numbers (`mx3 bom line --match`, the KiCad "Match" column).
+    /// between suppliers or reels of different part numbers (`mx3 bom line --match`, the `KiCad` "Match" column).
     #[serde(default)]
     pub match_group: Option<String>,
     /// BOM-28: the part numbers the BOM file named for the line, in column order; `None` for lines imported
@@ -337,7 +341,7 @@ pub enum ParameterSource {
 }
 
 impl BomItem {
-    /// Find a parameter value by name, prioritizing BOM parameters over global parameters if prefer_local = true and global otherwise
+    /// Find a parameter value by name, prioritizing BOM parameters over global parameters if `prefer_local` = true and global otherwise
     pub fn find_parameter(
         &self,
         name: &str,
@@ -754,7 +758,7 @@ fn compare_values(
     rule: Rule,
 ) -> Result<(), CheckMismatch> {
     let mismatch = || CheckMismatch {
-        what: what.to_string(),
+        what: what.to_owned(),
         bom: local.to_string(),
         part: supply.to_string(),
     };
@@ -793,7 +797,7 @@ fn compare_values(
 fn canonical_text(s: &str) -> String {
     let s = s.trim().to_ascii_lowercase();
     match s.as_str() {
-        "np0" => "c0g".to_string(),
+        "np0" => "c0g".to_owned(),
         _ => s,
     }
 }
@@ -1146,14 +1150,14 @@ mod tests {
         let item = BomItem {
             id: BomItemId(1),
             bom_id: BomId(1),
-            designators: vec![designator.to_string()],
+            designators: vec![designator.to_owned()],
             group_id: BomGroupId(1),
             part_choices: vec![PartId(1)],
             candidates: vec![],
             parameters: bom
                 .into_iter()
                 .enumerate()
-                .map(|(i, (n, v))| param(i as i64, n, v))
+                .map(|(i, (n, v))| param(i64::try_from(i).unwrap(), n, v))
                 .collect(),
             match_group: None,
             part_numbers: None,
@@ -1162,13 +1166,13 @@ mod tests {
         let supply = supply
             .into_iter()
             .enumerate()
-            .map(|(i, (n, v))| param(100 + i as i64, n, v))
+            .map(|(i, (n, v))| param(100 + i64::try_from(i).unwrap(), n, v))
             .collect();
         item.check(&HashMap::from([(PartId(1), part(supply))]))
     }
 
     fn s(v: &str) -> Variant {
-        Variant::Str(v.to_string())
+        Variant::Str(v.to_owned())
     }
 
     /// A line with `designator` and the BOM's own parameters, one chosen part known only by `part_number` (no
@@ -1181,21 +1185,21 @@ mod tests {
         let item = BomItem {
             id: BomItemId(1),
             bom_id: BomId(1),
-            designators: vec![designator.to_string()],
+            designators: vec![designator.to_owned()],
             group_id: BomGroupId(1),
             part_choices: vec![PartId(1)],
             candidates: vec![],
             parameters: bom
                 .into_iter()
                 .enumerate()
-                .map(|(i, (n, v))| param(i as i64, n, v))
+                .map(|(i, (n, v))| param(i64::try_from(i).unwrap(), n, v))
                 .collect(),
             match_group: None,
             part_numbers: None,
             hand_choices: HashSet::new(),
         };
         let mut chosen = part(vec![]);
-        chosen.part_number = part_number.to_string();
+        chosen.part_number = part_number.to_owned();
         item.check(&HashMap::from([(PartId(1), chosen)]))
     }
 
@@ -1437,7 +1441,7 @@ mod tests {
             part_choices: choices.iter().map(|id| PartId(*id)).collect(),
             candidates: vec![],
             parameters: vec![],
-            match_group: Some(group.to_string()),
+            match_group: Some(group.to_owned()),
             part_numbers: None,
             hand_choices: HashSet::new(),
         }
@@ -1560,7 +1564,7 @@ mod tests {
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].quantity, 5);
         assert_eq!(rows[0].spn, "SPN2");
-        assert!(rows[0].note.is_empty());
+        assert_eq!(rows[0].note, "");
     }
 
     #[test]
@@ -1574,7 +1578,7 @@ mod tests {
         let bom = match_bom(vec![item], parts);
         let rows = bom.purchase_list(1, SupplyFilter::default());
         assert_eq!(rows.len(), 1);
-        assert!(rows[0].supplier.is_empty());
+        assert_eq!(rows[0].supplier, "");
         assert!(rows[0].note.contains("one MPN per board"));
     }
 

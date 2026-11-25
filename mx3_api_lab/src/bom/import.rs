@@ -1,6 +1,8 @@
+//! BOM import from a plain table of strings.
+//!
 //! BOM import (BOM-1) on a plain table of strings: column detection by header name, skipping DNM rows, test
 //! points and empty columns, part number lookup and building the `CreateBom` request. The UI's importer works on
-//! an egui_tabular table and uses the same rules through `ColumnRole`, `is_dnm`, `is_test_point` and
+//! an `egui_tabular` table and uses the same rules through `ColumnRole`, `is_dnm`, `is_test_point` and
 //! `split_designators`; `mx3 bom import` reads CSV/XLSX into a `BomTable` and runs all of it.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -39,35 +41,37 @@ pub enum ColumnRole {
 }
 
 impl ColumnRole {
-    pub fn from_header(name: &str) -> Option<ColumnRole> {
+    pub fn from_header(name: &str) -> Option<Self> {
         match name.trim().to_lowercase().as_str() {
             "designator" | "designators" | "reference" | "reference(s)" | "part reference"
-            | "refdes" => Some(ColumnRole::Designators),
+            | "refdes" => Some(Self::Designators),
             // TODO: what if a BOM has both value and comment?
-            "value" | "comment" | "name" => Some(ColumnRole::Value),
-            "quantity" | "amount" | "count" | "qty" => Some(ColumnRole::Quantity),
-            "variant" | "group" => Some(ColumnRole::VariantGroup),
-            "dnm" | "dnp" => Some(ColumnRole::Dnm),
-            "match" | "match group" => Some(ColumnRole::Match),
+            "value" | "comment" | "name" => Some(Self::Value),
+            "quantity" | "amount" | "count" | "qty" => Some(Self::Quantity),
+            "variant" | "group" => Some(Self::VariantGroup),
+            "dnm" | "dnp" => Some(Self::Dnm),
+            "match" | "match group" => Some(Self::Match),
             mpn if mpn.starts_with("mpn")
                 || mpn.starts_with("manufacturer part")
                 || mpn.starts_with("mfr part")
                 || mpn.starts_with("mfr. part")
                 || mpn.starts_with("mfr pn") =>
             {
-                Some(ColumnRole::PartNumber)
+                Some(Self::PartNumber)
             }
             mfr if mfr.starts_with("mfr")
                 || mfr.starts_with("mfg")
                 || mfr.starts_with("manufacturer") =>
             {
-                Some(ColumnRole::Manufacturer)
+                Some(Self::Manufacturer)
             }
             _ => None,
         }
     }
 }
 
+/// Decodes the bytes of a text BOM file.
+///
 /// Decodes the bytes of a text BOM file: UTF-8 (BOM stripped) first, UTF-16 with a BOM, else Windows-1252, which is what
 /// Excel and Altium write for "ANSI" CSVs. Never lossy: `µ` and `±` come out as `µ` and `±`, not as `\u{FFFD}` or `Âµ`.
 pub fn decode_text(bytes: &[u8]) -> String {
@@ -79,7 +83,7 @@ pub fn decode_text(bytes: &[u8]) -> String {
     }
     let bytes = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]).unwrap_or(bytes);
     match std::str::from_utf8(bytes) {
-        Ok(s) => s.to_string(),
+        Ok(s) => s.to_owned(),
         Err(_) => bytes.iter().map(|&b| cp1252(b)).collect(),
     }
 }
@@ -204,7 +208,7 @@ impl BomTable {
                 Some(ColumnRole::VariantGroup) => p.group_col = Some(col),
                 Some(ColumnRole::Dnm) => {
                     if p.dnm_col.is_none() {
-                        p.dnm_col = Some(col)
+                        p.dnm_col = Some(col);
                     }
                 }
                 Some(ColumnRole::PartNumber) => p.part_number_cols.push(col),
@@ -271,7 +275,7 @@ impl BomTable {
                 let pn = self.cell(*row, Some(*col)).trim();
                 if !pn.is_empty() {
                     // every maker of the part number is looked up; the maker column picks among them (BOM-25)
-                    pns.insert(pn.to_string());
+                    pns.insert(pn.to_owned());
                 }
             }
         }
@@ -279,7 +283,7 @@ impl BomTable {
             mpns: pns
                 .into_iter()
                 .map(|pn| MpnString {
-                    manufacturer_name: "".to_string(),
+                    manufacturer_name: String::new(),
                     part_number: pn,
                 })
                 .collect(),
@@ -319,7 +323,7 @@ impl BomTable {
                 if pn.is_empty() {
                     continue;
                 }
-                part_numbers.push(pn.to_string());
+                part_numbers.push(pn.to_owned());
                 let found = lookup
                     .find_idx(pn)
                     .and_then(|idx| result.and_then(|r| r.parts.get(idx)));
@@ -334,7 +338,7 @@ impl BomTable {
                                 candidates.extend(&pick.candidates);
                                 out.picks.push(ImportPick {
                                     item: out.items.len(),
-                                    part_number: pn.to_string(),
+                                    part_number: pn.to_owned(),
                                     pick,
                                 });
                             }
@@ -344,8 +348,8 @@ impl BomTable {
                     Some(LookupPartResult::NotFound) | None => {
                         part_choices_create.push(CreatePart {
                             mfg_id: CompanyId::hack(7),
-                            part_number: pn.to_string(),
-                        })
+                            part_number: pn.to_owned(),
+                        });
                     }
                 }
             }
@@ -354,20 +358,20 @@ impl BomTable {
             for col in &p.parameter_cols {
                 let value = self.cell(*row, Some(*col));
                 if !value.is_empty() {
-                    parameters.insert(self.headers[*col].clone(), value.to_string());
+                    parameters.insert(self.headers[*col].clone(), value.to_owned());
                 }
             }
-            parameters.insert("Value".to_owned(), self.cell(*row, p.value_col).to_string());
+            parameters.insert("Value".to_owned(), self.cell(*row, p.value_col).to_owned());
 
             let match_group = self.cell(*row, p.match_col).trim();
-            let match_group = (!match_group.is_empty()).then(|| match_group.to_string());
+            let match_group = (!match_group.is_empty()).then(|| match_group.to_owned());
 
             // a part another column of the line picked stays a real choice only
             let mut seen: BTreeSet<i32> = part_choices.iter().map(|p| p.0).collect();
             candidates.retain(|c| seen.insert(c.0));
             out.items.push(CreateBomItem {
                 designators,
-                group: group.to_string(),
+                group: group.to_owned(),
                 part_choices,
                 candidates,
                 part_choices_create,
@@ -423,7 +427,7 @@ pub struct ImportPick {
 impl CreateBom {
     /// A BOM for `pcb` with the placeholder user and company the UI uses
     pub fn new(pcb_id: PcbId, description: String, items: Vec<CreateBomItem>) -> Self {
-        CreateBom {
+        Self {
             pcb_id,
             description,
             user_id: UserId::hack(1),
@@ -466,9 +470,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn detects_columns_and_skips() {
-        let t = table(
+    fn skipping_table() -> BomTable {
+        table(
             &[
                 "Reference",
                 "Value",
@@ -494,9 +497,14 @@ mod tests {
                 &["", "", "", "", "", "", ""],
                 &["C2 C3", "100n", "2", "", "C_0402", "", ""],
             ],
-        );
+        )
+    }
+
+    #[test]
+    fn detects_columns_and_skips() {
+        let t = skipping_table();
         let p = t.prepare(ImportOptions::default());
-        assert!(p.errors.is_empty());
+        assert_eq!(p.errors, Vec::<String>::new());
         assert_eq!(p.designators_col, Some(0));
         assert_eq!(p.value_col, Some(1));
         assert_eq!(p.quantity_col, Some(2));
@@ -506,7 +514,12 @@ mod tests {
         assert_eq!(p.skipped_test_points, vec![2]);
         assert_eq!(p.skipped_empty_cols, vec![5, 6]);
         assert_eq!(p.parameter_cols, vec![4]);
+    }
 
+    #[test]
+    fn skipping_table_becomes_bom_items() {
+        let t = skipping_table();
+        let p = t.prepare(ImportOptions::default());
         let lookup = t.lookup_request(&p);
         assert_eq!(lookup.mpns.len(), 1);
         let result = LookupPartsResult {
@@ -522,8 +535,8 @@ mod tests {
         assert_eq!(items[0].designators, vec!["R1", "R2"]);
         assert_eq!(items[0].part_choices, vec![PartId(42)]);
         assert_eq!(items[0].group, "main");
-        assert_eq!(items[0].parameters.get("Footprint").unwrap(), "R_0402");
-        assert_eq!(items[0].parameters.get("Value").unwrap(), "10k");
+        assert_eq!(&items[0].parameters["Footprint"], "R_0402");
+        assert_eq!(&items[0].parameters["Value"], "10k");
         assert_eq!(items[1].designators, vec!["C2", "C3"]);
     }
 
@@ -541,7 +554,7 @@ mod tests {
         let items = t
             .create_bom_items(&p, &lookup, Some(&result), |_, _| None)
             .items;
-        assert!(items[0].part_choices.is_empty());
+        assert_eq!(items[0].part_choices, Vec::<PartId>::new());
         assert_eq!(items[0].part_choices_create[0].part_number, "XYZ123");
     }
 
@@ -626,7 +639,7 @@ mod tests {
         assert_eq!(with.items[0].part_choices, vec![PartId(2)]);
         assert_eq!(with.items[0].candidates, vec![PartId(1), PartId(3)]);
         assert_eq!(with.picks[0].pick.to_string(), "maker NXP from the file");
-        assert_eq!(with.items[0].parameters.get("Mfr1").unwrap(), "NXP");
+        assert_eq!(&with.items[0].parameters["Mfr1"], "NXP");
     }
 
     /// BOM-26: a "Match" column sets each line's match-group text; empty cells and no column at all give `None`,
@@ -643,7 +656,7 @@ mod tests {
         );
         let p = t.prepare(ImportOptions::default());
         assert_eq!(p.match_col, Some(2));
-        assert!(p.parameter_cols.is_empty());
+        assert_eq!(p.parameter_cols, Vec::<usize>::new());
         let items = t
             .create_bom_items(&p, &t.lookup_request(&p), None, |_, _| None)
             .items;

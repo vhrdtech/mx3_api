@@ -12,6 +12,11 @@ pub struct BlockingClient {
 }
 
 impl BlockingClient {
+    /// A client for the backend at `base_url`.
+    ///
+    /// # Panics
+    ///
+    /// When the HTTP client cannot be built (no TLS backend available).
     pub fn new(base_url: String) -> Self {
         let client = Client::builder()
             .default_headers(mx3_api_core::client_headers())
@@ -55,7 +60,7 @@ impl BlockingClient {
         &self.base_url
     }
 
-    /// [post_json](Self::post_json) for a call that may take longer than the client's 30 s (one that makes several
+    /// [`post_json`](Self::post_json) for a call that may take longer than the client's 30 s (one that makes several
     /// supplier calls).
     pub fn post_json_waiting<Q: Serialize, T: DeserializeOwned>(
         &self,

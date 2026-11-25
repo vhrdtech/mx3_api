@@ -1,3 +1,5 @@
+//! Manufacturer part-number schemes.
+//!
 //! Manufacturer part-number schemes (docs/mpn-schemes.md): the corpus of every part's maker, MPN and curated values
 //! for the `mpn_schemes` corpus test (MPN-2); the loaded scheme set, an MPN read segment by segment, and parts
 //! decoded into facts of the source `mpn_decode` (MPN-1, §7). Decoded values travel as the scheme crate's stable
@@ -139,6 +141,8 @@ pub struct MpnSegment {
     pub free: bool,
 }
 
+/// The reading an MPN would be decoded under.
+///
 /// The reading an MPN would be decoded under, the way `mpn_decode` facts choose one (MPN-1, `mpn::decode::decide`):
 /// a complete reading by a scheme of the known maker, with no equally good rival. Used by `params/by_mpn` (PRM-17)
 /// so a caller sees the same scheme id, version and segments a decoded fact would carry, even for an MPN mx3 holds

@@ -1,3 +1,5 @@
+//! Digi-Key's suggestions for a part (INT-18).
+//!
 //! Digi-Key's suggestions for a part (INT-18): its substitutes and recommended products, and the near matches of a
 //! keyword search ("did you mean", cross-references). Asked for one MPN by `mx3 supplier substitutes`, and kept on
 //! the parts the crawler could not find at Digi-Key, for `crawler failed` and the BOM's lines.
@@ -33,19 +35,19 @@ impl SuggestionKind {
     /// The word in the database
     pub fn as_str(self) -> &'static str {
         match self {
-            SuggestionKind::Substitute => "substitute",
-            SuggestionKind::CrossReference => "cross_reference",
-            SuggestionKind::Similar => "similar",
-            SuggestionKind::Recommended => "recommended",
+            Self::Substitute => "substitute",
+            Self::CrossReference => "cross_reference",
+            Self::Similar => "similar",
+            Self::Recommended => "recommended",
         }
     }
 
-    pub fn parse(s: &str) -> Option<SuggestionKind> {
+    pub fn parse(s: &str) -> Option<Self> {
         [
-            SuggestionKind::Substitute,
-            SuggestionKind::CrossReference,
-            SuggestionKind::Similar,
-            SuggestionKind::Recommended,
+            Self::Substitute,
+            Self::CrossReference,
+            Self::Similar,
+            Self::Recommended,
         ]
         .into_iter()
         .find(|k| k.as_str() == s)
@@ -54,10 +56,10 @@ impl SuggestionKind {
     /// How a person reads it
     pub fn label(self) -> &'static str {
         match self {
-            SuggestionKind::Substitute => "substitute",
-            SuggestionKind::CrossReference => "cross-reference",
-            SuggestionKind::Similar => "did you mean",
-            SuggestionKind::Recommended => "recommended",
+            Self::Substitute => "substitute",
+            Self::CrossReference => "cross-reference",
+            Self::Similar => "did you mean",
+            Self::Recommended => "recommended",
         }
     }
 }
@@ -97,22 +99,27 @@ impl Suggestion {
     /// One line for a terminal: `did you mean BAT750-7-F (Diodes Incorporated) · stock 54k · 0.42`
     pub fn short(&self) -> String {
         let kind = if self.dk_kind.is_empty() {
-            self.kind.label().to_string()
+            self.kind.label().to_owned()
         } else {
             format!("{} ({})", self.kind.label(), self.dk_kind.to_lowercase())
         };
         let mut s = format!("{kind} {}", self.mpn);
         if !self.manufacturer.is_empty() {
-            s.push_str(&format!(" ({})", self.manufacturer));
+            s.push_str(" (");
+            s.push_str(&self.manufacturer);
+            s.push(')');
         }
         if let Some(n) = self.stock {
-            s.push_str(&format!(" · stock {n}"));
+            s.push_str(" · stock ");
+            s.push_str(&n.to_string());
         }
         if let Some(p) = self.unit_price {
-            s.push_str(&format!(" · {:.4}", p.to_f64()));
+            s.push_str(" · ");
+            s.push_str(&format_args!("{:.4}", p.to_f64()).to_string());
         }
         if let Some(p) = self.part {
-            s.push_str(&format!(" · #{}", p.0));
+            s.push_str(" · #");
+            s.push_str(&p.0.to_string());
         }
         s
     }

@@ -1,3 +1,5 @@
+//! Planning the assembly of PCBs from one BOM.
+//!
 //! PCB assembly planning (PCB-2): for boards being assembled from one BOM, which designators are still open on
 //! each line, which boxes hold a fitting part, and the box moves that place parts. Progress comes from the
 //! placements recorded by the backend (`SerialPlacement`), so an assembly can continue where it stopped (PCB-6).
@@ -140,6 +142,8 @@ pub fn plan(bom: &Bom, boards: &[Board]) -> Vec<LinePlan> {
     lines
 }
 
+/// The box moves that place the open designators of a line.
+///
 /// Moves placing open designators of a line from one box, board by board, at most `available` parts (one move
 /// per designator, as the UI's "Place" does). `only` limits them to these designators when not empty.
 pub fn place_moves(
@@ -179,7 +183,7 @@ mod tests {
     fn line(open: Vec<(i32, Vec<&str>)>) -> LinePlan {
         LinePlan {
             item_idx: 0,
-            description: "".into(),
+            description: String::new(),
             total: 4,
             done: 0,
             open: open
@@ -205,7 +209,7 @@ mod tests {
         };
         assert_eq!((*to_serial, designator.as_str()), (SerialId(2), "R1"));
 
-        let moves = place_moves(&l, PartId(5), BoxId(9), 10, &["r2".to_string()]);
+        let moves = place_moves(&l, PartId(5), BoxId(9), 10, &["r2".to_owned()]);
         assert_eq!(moves.len(), 2);
     }
 }

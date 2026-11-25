@@ -131,13 +131,11 @@ impl<T: DeserializeOwned> Promise<T> {
     pub fn take(&mut self) -> Result<Option<T>, String> {
         if let Some(r) = self.take_ready() {
             Ok(Some(r))
+        } else if let Some(e) = self.peek_error() {
+            self.state = PromiseState::None;
+            Err(e)
         } else {
-            if let Some(e) = self.peek_error() {
-                self.state = PromiseState::None;
-                Err(e)
-            } else {
-                Ok(None)
-            }
+            Ok(None)
         }
     }
 

@@ -1,5 +1,7 @@
+//! Parameter filters of a supplier search (SRCH-4).
+//!
 //! Parameter filters of a supplier search (SRCH-4): `Voltage - Rated>=25V`, `Capacitance=100n`,
-//! `Dielectric=X7R,X5R`, `Resistance=1k..10k`, `Package / Case~0402`, read into a [ParamFilter], and which of a
+//! `Dielectric=X7R,X5R`, `Resistance=1k..10k`, `Package / Case~0402`, read into a [`ParamFilter`], and which of a
 //! supplier's value texts (`50V`, `0.1 µF`, `±10%`, `-55°C ~ 125°C`, `100mOhm @ 4.5V, 10A`) satisfy it. Digi-Key
 //! filters only by value ids, so a range filter is the set of values whose text reads into a number in range.
 //! Pure, no network.
@@ -43,7 +45,7 @@ const EQ_REL: f64 = 1e-3;
 impl ParamFilter {
     /// `Name OP value`: OP one of `>=` `<=` `!=` `=` `~` `>` `<`; `=`, `!=` and `~` take a list split by `,` or `|`;
     /// `=` with `a..b` is a range.
-    pub fn parse(s: &str) -> Result<ParamFilter, String> {
+    pub fn parse(s: &str) -> Result<Self, String> {
         let at = s
             .find(['<', '>', '=', '!', '~'])
             .ok_or_else(|| format!("`{s}`: expected Name>=value (ops: = != ~ >= <= > <)"))?;
@@ -64,7 +66,7 @@ impl ParamFilter {
                 .split([',', '|'])
                 .map(str::trim)
                 .filter(|v| !v.is_empty())
-                .map(str::to_string)
+                .map(str::to_owned)
                 .collect()
         };
         let op = match op {
@@ -80,8 +82,8 @@ impl ParamFilter {
             "<" => FilterOp::Lt(value.into()),
             _ => unreachable!(),
         };
-        Ok(ParamFilter {
-            name: name.to_string(),
+        Ok(Self {
+            name: name.to_owned(),
             op,
         })
     }

@@ -42,6 +42,10 @@ pub type FileExportReport = ExportReport;
 
 #[cfg(feature = "client")]
 impl MxClient {
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "public signature mx3's callers use; changing it is its own API change"
+    )]
     pub fn get_file(&self, q: GetFile, marker: &'static str) -> Promise<File> {
         let (req, rx) = RequestInitiator::post_json_arg("get_file".into(), &q);
         self.send_req(req, rx, marker)

@@ -1,3 +1,5 @@
+//! BOM logic shared by the UI and the CLI.
+//!
 //! BOM logic shared by the UI and the CLI: editor filters and line lookups, cost analysis (BOM-6), import
 //! (BOM-1) and assembly planning (PCB-2). Pure functions over the API types; no requests are sent from here.
 
@@ -53,7 +55,7 @@ pub struct BomFilter {
 impl Default for BomFilter {
     fn default() -> Self {
         Self {
-            text: "".into(),
+            text: String::new(),
             designator_kind: "Any".into(),
             risky: false,
             non_warehouse: false,
@@ -143,7 +145,7 @@ impl Bom {
     /// choice ("+1*" in the editor) can be offered
     pub fn values_as_mpn_lookup(&self) -> LookupParts {
         let mut mpns = vec![];
-        'outer: for item in self.items.iter() {
+        'outer: for item in &self.items {
             let Some(value) = item.value() else {
                 continue;
             };
@@ -156,7 +158,7 @@ impl Bom {
                 }
             }
             mpns.push(MpnString {
-                manufacturer_name: "".to_string(),
+                manufacturer_name: String::new(),
                 part_number: value,
             });
         }
@@ -191,7 +193,7 @@ impl BomItem {
         })
     }
 
-    /// Any part choice sits in a box inside a "PnP" box (loaded into the pick and place)
+    /// Any part choice sits in a box inside a "`PnP`" box (loaded into the pick and place)
     pub fn in_pnp(&self, parts: &HashMap<PartId, Part>) -> bool {
         self.part_choices
             .iter()
@@ -270,7 +272,7 @@ impl BomItem {
 impl ParametricSearch {
     /// The same capacitor search accepting any voltage at or above the required one, in the warehouse and at
     /// suppliers ("Relax voltage requirement" in the editor). `None` for other searches.
-    pub fn relax_voltage(&self) -> Option<ParametricSearch> {
+    pub fn relax_voltage(&self) -> Option<Self> {
         let ParametricSearchKind::Capacitor {
             capacitance_farads,
             voltage_volts,
@@ -279,7 +281,7 @@ impl ParametricSearch {
         else {
             return None;
         };
-        Some(ParametricSearch {
+        Some(Self {
             kind: ParametricSearchKind::Capacitor {
                 capacitance_farads,
                 voltage_volts,

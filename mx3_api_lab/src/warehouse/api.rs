@@ -37,6 +37,10 @@ impl MxWarehouseBoxesClient<'_> {
         send_req(self.request_tx, req, rx, marker)
     }
 
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "public signature mx3's callers use; changing it is its own API change"
+    )]
     pub fn move_several(&self, q: MoveBoxes, marker: &'static str) -> Promise<()> {
         let (req, rx) = RequestInitiator::post_json_arg(EP_WAREHOUSE_BOX_MOVE_SEVERAL.into(), &q);
         send_req(self.request_tx, req, rx, marker)

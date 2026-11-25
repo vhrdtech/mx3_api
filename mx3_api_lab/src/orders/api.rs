@@ -53,6 +53,10 @@ impl MxSupplierOrdersClient<'_> {
 
 impl MxWarehouseOrdersClient<'_> {
     /// Get orders headers from mx3 database
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "public signature mx3's callers use; changing it is its own API change"
+    )]
     pub fn headers(
         &self,
         filter: OrdersHeadersFilter,

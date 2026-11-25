@@ -1,8 +1,10 @@
-//! Footprint reviews (PART-6): a person checked that the footprint with a review hash (better_erc `berc fp hash`,
+//! Footprint reviews (PART-6).
+//!
+//! Footprint reviews (PART-6): a person checked that the footprint with a review hash (`better_erc` `berc fp hash`,
 //! `fp1:` and 16 hex digits) fits the land pattern and package of some parts, against one document. A review covers
 //! single parts (`mpn`) or MPN families (`family`: every part whose current MPN decode reading, MPN-1, is of one
 //! scheme with fixed values such as `case_eia=0402`). Reviews are never deleted, only retracted; a retracted review
-//! covers nothing. better_erc links these types for its parts snapshot.
+//! covers nothing. `better_erc` links these types for its parts snapshot.
 
 use std::collections::BTreeMap;
 
@@ -25,7 +27,7 @@ pub const EP_FP_REVIEW_RETRACT: &str = "/fp/review/retract";
 /// Longest hash accepted: `fp` and a version, a colon, at most 64 hex digits
 pub const HASH_LEN_MAX: usize = 80;
 
-/// A review hash as better_erc writes it: `fp<version>:` then 16 to 64 lowercase hex digits.
+/// A review hash as `better_erc` writes it: `fp<version>:` then 16 to 64 lowercase hex digits.
 pub fn valid_hash(s: &str) -> bool {
     let Some((version, hex)) = s.split_once(':') else {
         return false;
@@ -264,7 +266,7 @@ mod tests {
             c,
             FpCoverSpec::Family {
                 scheme: "yageo.rc".into(),
-                segments: [("case_eia".to_string(), "0402".to_string())].into()
+                segments: [("case_eia".to_owned(), "0402".to_owned())].into()
             }
         );
         let c: FpCoverSpec = serde_json::from_str(r#"{"kind":"mpn","mpn":"BSS138W-7-F"}"#).unwrap();

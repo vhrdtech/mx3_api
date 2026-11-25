@@ -21,8 +21,8 @@ impl PcbId {
         self.0
     }
 
-    pub fn hack(id: i32) -> PcbId {
-        PcbId(id)
+    pub fn hack(id: i32) -> Self {
+        Self(id)
     }
 }
 
@@ -57,11 +57,11 @@ pub struct CreatePcb {
 
 impl Default for CreatePcb {
     fn default() -> Self {
-        CreatePcb {
-            name: "".to_string(),
-            description: "".to_string(),
-            git_link: "".to_string(),
-            revision: "A".to_string(),
+        Self {
+            name: String::new(),
+            description: String::new(),
+            git_link: String::new(),
+            revision: "A".to_owned(),
             parent_id: None,
             product: String::new(),
         }

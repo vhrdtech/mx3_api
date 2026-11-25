@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 pub struct FolderId(i32);
 
 impl FolderId {
-    pub fn root() -> FolderId {
-        FolderId(1)
+    pub fn root() -> Self {
+        Self(1)
     }
 }
 

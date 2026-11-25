@@ -74,7 +74,7 @@ impl WarehouseBox {
             if let BoxItemKind::Part { part_id: p } = &item.kind
                 && part_id == *p
             {
-                item.count -= count as i32;
+                item.count -= count.cast_signed();
                 return;
             }
         }

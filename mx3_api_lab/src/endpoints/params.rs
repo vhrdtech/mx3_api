@@ -1,3 +1,5 @@
+//! Parameter values as facts with sources and ranks (PRM-10).
+//!
 //! Parameter values as facts with sources and ranks (PRM-10, tpm P2527 design/parameters.md §3, §5): every value
 //! is a statement of one source, the value clients see is the best current fact (rank, then newest), and the
 //! vocabulary (definitions, sources, ranks) is data in the database. JSON endpoints under `/params/`.
@@ -70,29 +72,29 @@ pub enum DefStatus {
 impl DefStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
-            DefStatus::Raw => "raw",
-            DefStatus::Proposed => "proposed",
-            DefStatus::Curated => "curated",
-            DefStatus::Merged => "merged",
-            DefStatus::Retired => "retired",
+            Self::Raw => "raw",
+            Self::Proposed => "proposed",
+            Self::Curated => "curated",
+            Self::Merged => "merged",
+            Self::Retired => "retired",
         }
     }
 
-    pub const ALL: [DefStatus; 5] = [
-        DefStatus::Raw,
-        DefStatus::Proposed,
-        DefStatus::Curated,
-        DefStatus::Merged,
-        DefStatus::Retired,
+    pub const ALL: [Self; 5] = [
+        Self::Raw,
+        Self::Proposed,
+        Self::Curated,
+        Self::Merged,
+        Self::Retired,
     ];
 
-    pub fn parse(s: &str) -> Option<DefStatus> {
+    pub fn parse(s: &str) -> Option<Self> {
         Some(match s {
-            "raw" => DefStatus::Raw,
-            "proposed" => DefStatus::Proposed,
-            "curated" => DefStatus::Curated,
-            "merged" => DefStatus::Merged,
-            "retired" => DefStatus::Retired,
+            "raw" => Self::Raw,
+            "proposed" => Self::Proposed,
+            "curated" => Self::Curated,
+            "merged" => Self::Merged,
+            "retired" => Self::Retired,
             _ => return None,
         })
     }
@@ -169,12 +171,12 @@ pub enum SourceKind {
 }
 
 impl SourceKind {
-    pub fn parse(s: &str) -> Option<SourceKind> {
+    pub fn parse(s: &str) -> Option<Self> {
         Some(match s {
-            "person" => SourceKind::Person,
-            "harvester" => SourceKind::Harvester,
-            "import" => SourceKind::Import,
-            "derivation" => SourceKind::Derivation,
+            "person" => Self::Person,
+            "harvester" => Self::Harvester,
+            "import" => Self::Import,
+            "derivation" => Self::Derivation,
             _ => return None,
         })
     }
@@ -320,8 +322,8 @@ pub struct ResolvedSet {
 
 impl Resolved {
     /// A value of `name` as if stated by `manual` now, not stored: for tests and placeholders.
-    pub fn new(def_id: ParameterDefId, name: &str, value: Variant) -> Resolved {
-        Resolved {
+    pub fn new(def_id: ParameterDefId, name: &str, value: Variant) -> Self {
+        Self {
             def_id,
             key: None,
             name: name.into(),
@@ -364,7 +366,7 @@ pub enum DefRef {
 
 impl From<ParameterDefId> for DefRef {
     fn from(id: ParameterDefId) -> Self {
-        DefRef::Id(id)
+        Self::Id(id)
     }
 }
 
@@ -401,6 +403,8 @@ pub struct CreateDef {
     pub note: String,
 }
 
+/// Change a definition.
+///
 /// Change a definition. A new `ty` re-derives every current fact resolving under it (merged synonyms included)
 /// into the new type, as a renormalize does (its source's alias and parser, from its raw text, else its value), in
 /// one transaction; a fact that does not fit is kept as text flagged unparsed and counted. The old facts stay in
@@ -712,6 +716,7 @@ pub const BY_MPN_MPNS_MAX: usize = 1000;
 pub const BY_MPN_KEYS_MAX: usize = 200;
 
 /// Asks for the resolved values of parts by MPN (PRM-17), by definition key, so a client never matches raw names.
+///
 /// Empty `keys` = every definition, like [`ParamsOf`]. More than [`BY_MPN_MPNS_MAX`] MPNs or [`BY_MPN_KEYS_MAX`]
 /// keys is refused.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -927,6 +932,8 @@ pub const EP_PARAMS_VOCAB_LOG: &str = "/params/vocab/log";
 
 pub const EP_PARAMS_RENORMALIZE: &str = "/params/renormalize";
 
+/// Re-derive current facts from what their source said.
+///
 /// Re-derive current facts from what their source said (`raw`, else the value) and how it named it (`ext`), through
 /// today's aliases and parsers, as a crawl would store them now. The filters narrow which facts (AND-ed, none =
 /// every current fact). Unchanged facts stay; a new value, warnings or condition supersedes the fact with one
@@ -1023,6 +1030,8 @@ impl MxClient {
     }
 }
 
+/// A value type in words.
+///
 /// A value type in words, for clients that don't read rvariant: `(kind, unit, enum variants)`. Kinds: `empty`,
 /// `bool`, `str`, `str_list`, `number`, `si`, `si_range`, `enum`, `multi_enum`, `binary`, `list`, `map`, `date`,
 /// `time`, `datetime`, `instant`, `money`, `tolerance`.
@@ -1049,7 +1058,9 @@ pub fn ty_kind(ty: &VariantTy) -> (&'static str, Option<String>, Vec<String>) {
     }
 }
 
-/// A value type from the words of [ty_kind], for a person or a script: `str`, `bool`, `date`, ..., `number`
+/// A value type from the words of [`ty_kind`].
+///
+/// A value type from the words of [`ty_kind`], for a person or a script: `str`, `bool`, `date`, ..., `number`
 /// (`number:u32`, default f64), `si:Ω` (`si:f64:kΩ`, default f32), `si_range:V`, `money:EUR`, `tolerance`,
 /// `enum:Name:a|b|c`, `multi_enum:Name:a|b`; or rvariant's JSON (`{"Number":"U32"}`).
 pub fn ty_parse(s: &str) -> Result<VariantTy, String> {
@@ -1063,7 +1074,7 @@ pub fn ty_parse(s: &str) -> Result<VariantTy, String> {
     let number_ty = |n: &str| -> Result<NumberTy, String> {
         n.to_ascii_uppercase()
             .parse()
-            .map_err(|_| format!("number type `{n}`: u8..u64, i8..i64, f32, f64"))
+            .map_err(|e| format!("number type `{n}` ({e}): u8..u64, i8..i64, f32, f64"))
     };
     // `si:Ω` or `si:f64:Ω`
     let si = |rest: &str| -> Result<(NumberTy, rvariant::si_dynamic::UnitExpr), String> {
@@ -1084,7 +1095,7 @@ pub fn ty_parse(s: &str) -> Result<VariantTy, String> {
         let (name, list) = rest
             .split_once(':')
             .ok_or_else(|| format!("`{kind}:Name:a|b|c`"))?;
-        let list: Vec<String> = list.split('|').map(|v| v.trim().to_string()).collect();
+        let list: Vec<String> = list.split('|').map(|v| v.trim().to_owned()).collect();
         Ok((name.into(), list.into()))
     };
     let no_rest = |ty: VariantTy| {
@@ -1230,6 +1241,8 @@ pub struct RemoveAlias {
     pub note: String,
 }
 
+/// Which definition a source means by a name or an id.
+///
 /// Which definition a source means by a name or an id, within scopes. An alias of a more specific scope wins (the
 /// first of `ext_scopes`, then the next, then one valid everywhere), then one matching both id and name over one
 /// matching either, an id over a name; without an alias a definition of that name.
@@ -1257,7 +1270,7 @@ pub struct AliasResolved {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AddSource {
-    /// snake_case, unique
+    /// `snake_case`, unique
     pub key: String,
     pub label: String,
     pub default_rank: i32,
@@ -1322,10 +1335,10 @@ pub struct VocabChange {
 impl SourceKind {
     pub fn as_str(&self) -> &'static str {
         match self {
-            SourceKind::Person => "person",
-            SourceKind::Harvester => "harvester",
-            SourceKind::Import => "import",
-            SourceKind::Derivation => "derivation",
+            Self::Person => "person",
+            Self::Harvester => "harvester",
+            Self::Import => "import",
+            Self::Derivation => "derivation",
         }
     }
 }

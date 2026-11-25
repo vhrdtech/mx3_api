@@ -58,14 +58,14 @@ impl ChoiceFacts {
         part: &Part,
         companies: &HashMap<CompanyId, Company>,
         family: &FamilyUse,
-    ) -> ChoiceFacts {
+    ) -> Self {
         let company = companies.get(&part.mfg);
         let flag = |name: &str| {
             part.find_parameter(name)
                 .and_then(|v| v.as_bool().ok())
                 .unwrap_or(false)
         };
-        ChoiceFacts {
+        Self {
             part: part.id,
             mpn: part.part_number.clone(),
             maker: company.map(|c| c.name.clone()).unwrap_or_default(),
@@ -103,7 +103,7 @@ impl ChoiceFacts {
                 return Some(status.clone());
             }
         }
-        self.discontinued.then(|| "discontinued".to_string())
+        self.discontinued.then(|| "discontinued".to_owned())
     }
 
     /// Known maker and active lifecycle
@@ -174,15 +174,15 @@ pub enum PickReason {
 impl Display for PickReason {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            PickReason::Only => write!(f, "only part"),
-            PickReason::Maker { name } => write!(f, "maker {name} from the file"),
-            PickReason::Family { boms } => {
+            Self::Only => write!(f, "only part"),
+            Self::Maker { name } => write!(f, "maker {name} from the file"),
+            Self::Family { boms } => {
                 let boms: Vec<String> = boms.iter().map(|b| b.0.to_string()).collect();
                 write!(f, "used on BOM {}", boms.join(", "))
             }
-            PickReason::Stock { count } => write!(f, "{count} in the warehouse"),
-            PickReason::Active => write!(f, "known maker, active"),
-            PickReason::Oldest => write!(f, "oldest"),
+            Self::Stock { count } => write!(f, "{count} in the warehouse"),
+            Self::Active => write!(f, "known maker, active"),
+            Self::Oldest => write!(f, "oldest"),
         }
     }
 }
@@ -233,7 +233,7 @@ pub fn pick(facts: &[ChoiceFacts], maker: Option<&str>) -> Option<Pick> {
                 step = Some(Step::Maker);
             }
         } else if facts.len() > 1 {
-            maker_not_found = Some(m.to_string());
+            maker_not_found = Some(m.to_owned());
         }
     }
     type Test = fn(&ChoiceFacts) -> bool;
@@ -254,7 +254,7 @@ pub fn pick(facts: &[ChoiceFacts], maker: Option<&str>) -> Option<Pick> {
     let reason = match step {
         _ if facts.len() == 1 => PickReason::Only,
         Some(Step::Maker) => PickReason::Maker {
-            name: maker.unwrap_or_default().to_string(),
+            name: maker.unwrap_or_default().to_owned(),
         },
         Some(Step::Family) => {
             let mut boms = best.family_boms.clone();
@@ -601,7 +601,7 @@ pub(crate) mod tests {
         let f = &three_makers()[2..];
         let p = pick(f, Some("Diodes")).unwrap();
         assert_eq!(p.reason, PickReason::Only);
-        assert!(p.candidates.is_empty());
+        assert_eq!(p.candidates, Vec::<PartId>::new());
         assert!(pick(&[], None).is_none());
     }
 
@@ -619,8 +619,8 @@ pub(crate) mod tests {
         Pcb {
             id: PcbId::hack(id),
             name: name.into(),
-            description: "".into(),
-            git_link: "".into(),
+            description: String::new(),
+            git_link: String::new(),
             created: Utc::now(),
             modified: Utc::now(),
             revision: "A".into(),
@@ -639,7 +639,7 @@ pub(crate) mod tests {
         ];
         let f = family_pcbs(&pcbs, PcbId::hack(3));
         let mut f: Vec<_> = f.into_iter().map(|p| p.value()).collect();
-        f.sort();
+        f.sort_unstable();
         assert_eq!(f, vec![1, 2, 3]);
         assert_eq!(family_pcbs(&pcbs, PcbId::hack(4)).len(), 1);
     }

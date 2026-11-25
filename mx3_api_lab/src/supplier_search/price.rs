@@ -1,3 +1,5 @@
+//! The price of a quantity at a supplier (SRCH-4).
+//!
 //! The price of a quantity at a supplier (SRCH-4): every packaging of a product is an [Offer] with its own price
 //! breaks, minimum order, order step and stock (Digi-Key's cut tape, Digi-Reel and tape & reel of one MPN). Below
 //! the minimum order or between steps one buys more than needed, and that is what the quantity costs; the cheapest
@@ -78,8 +80,14 @@ impl Offer {
     }
 }
 
+/// The cheapest way to buy a quantity.
+///
 /// The cheapest way to buy `qty` among `offers` (marketplace ones only with `marketplace`), by what one piece really
 /// costs; offers with the quantity in stock first when `in_stock`. `None` when no offer sells that quantity.
+#[expect(
+    clippy::fn_params_excessive_bools,
+    reason = "public signature mx3's callers use; changing it is its own API change"
+)]
 pub fn best_price(
     offers: &[Offer],
     qty: u32,
@@ -102,7 +110,7 @@ pub fn best_price(
 mod tests {
     use super::*;
 
-    /// GRM155R71H104KE14J as Digi-Key sells it (digi_key_api/assets/digikey_product_details_v4.json)
+    /// GRM155R71H104KE14J as Digi-Key sells it (`digi_key_api/assets/digikey_product_details_v4.json`)
     fn murata() -> Vec<Offer> {
         let ct = vec![
             (1, 0.1),

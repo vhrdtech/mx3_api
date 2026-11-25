@@ -26,6 +26,16 @@ pub enum RequestKind {
     SetToken(Option<String>),
 }
 
+impl RequestKind {
+    /// The kind for a POST of `arg` as JSON, or the encoding error.
+    fn post_json<T: Serialize>(arg: &T) -> Self {
+        match serde_json::to_vec(arg) {
+            Ok(body) => Self::PostJson(body),
+            Err(e) => Self::Unencodable(Error::JsonError(e)),
+        }
+    }
+}
+
 impl RequestInitiator {
     pub fn get_no_args(endpoint: String) -> (Self, Receiver<Result<Vec<u8>, Error>>) {
         let (tx, rx) = tokio::sync::oneshot::channel();
@@ -41,16 +51,17 @@ impl RequestInitiator {
         )
     }
 
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "public signature mx3's callers use; changing it is its own API change"
+    )]
     pub fn post_json_arg<T: Serialize>(
         endpoint: String,
         arg: &T,
     ) -> (Self, Receiver<Result<Vec<u8>, Error>>) {
         let (tx, rx) = tokio::sync::oneshot::channel();
-        let endpoint = endpoint.strip_prefix("/").unwrap_or(&endpoint).to_string();
-        let kind = match serde_json::to_vec(arg) {
-            Ok(body) => RequestKind::PostJson(body),
-            Err(e) => RequestKind::Unencodable(Error::JsonError(e)),
-        };
+        let endpoint = endpoint.strip_prefix("/").unwrap_or(&endpoint).to_owned();
+        let kind = RequestKind::post_json(arg);
         (
             Self {
                 // id,
@@ -68,11 +79,15 @@ impl RequestInitiator {
         result: Result<Vec<u8>, Error>,
     ) {
         if let Some(tx) = tx {
-            if tx.send(result).is_err() {
-                warn!("RequestInitiator: channel closed");
-            }
+            Self::deliver(tx, result);
         } else {
-            error!("RequestInitiator: tried to send response twice")
+            error!("RequestInitiator: tried to send response twice");
+        }
+    }
+
+    fn deliver(tx: Sender<Result<Vec<u8>, Error>>, result: Result<Vec<u8>, Error>) {
+        if tx.send(result).is_err() {
+            warn!("RequestInitiator: channel closed");
         }
     }
 }

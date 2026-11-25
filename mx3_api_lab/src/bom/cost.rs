@@ -1,3 +1,5 @@
+//! BOM cost analysis.
+//!
 //! BOM cost analysis (BOM-6): the best price of every line at every price break found in the BOM's supply
 //! data, totals per board and for the whole order, and the most expensive lines. The UI's cost tab and
 //! `mx3 bom cost` both render this. Every supplier's options compete for each line, or one supplier's only (INT-12).
@@ -75,12 +77,12 @@ impl CostLine {
 
 impl BomCost {
     /// Lines of `group` only (and the groups it adds) when given, else all lines
-    pub fn calculate(bom: &Bom, group: Option<BomGroupId>) -> BomCost {
+    pub fn calculate(bom: &Bom, group: Option<BomGroupId>) -> Self {
         Self::calculate_for(bom, group, SupplyFilter::default())
     }
 
     /// [`Self::calculate`] over the supply options `only` takes: one supplier's (INT-12), brokers too (INT-16)
-    pub fn calculate_for(bom: &Bom, group: Option<BomGroupId>, only: SupplyFilter) -> BomCost {
+    pub fn calculate_for(bom: &Bom, group: Option<BomGroupId>, only: SupplyFilter) -> Self {
         let mut price_breaks = HashSet::new();
         for part in bom.referenced_parts.values() {
             for supply in part.supply_of(only) {
@@ -164,7 +166,7 @@ impl BomCost {
         by_price.sort_by_key(|a| std::cmp::Reverse(a.1));
         let top_lines = by_price.into_iter().take(10).map(|(idx, _)| idx).collect();
 
-        BomCost {
+        Self {
             price_breaks,
             lines,
             totals,
@@ -331,7 +333,7 @@ mod tests {
         // a supplier none of whose options price the line: the row stays, without a supplier
         let rows = b.purchase_list(1, SupplyFilter::supplier(CompanyId(77)));
         assert_eq!(rows.len(), 1);
-        assert!(rows[0].supplier.is_empty());
+        assert_eq!(rows[0].supplier, "");
     }
 
     /// A broker's offer (INT-16): listed with the part, but out of cost, purchase and stock unless asked for.

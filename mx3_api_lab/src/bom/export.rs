@@ -1,3 +1,5 @@
+//! The BOM as the VHRD spreadsheet.
+//!
 //! The BOM as the VHRD spreadsheet (BOM-27): what goes in it, worked out from a [`Bom`] alone. The backend turns
 //! a [`BomExport`] into the workbook (`mx3_backend/src/bom_xlsx.rs`); keeping the choices here (the preferred part,
 //! the risks, stock and price per supplier at the order quantity) lets the CLI and UI show the same numbers.
@@ -113,9 +115,9 @@ pub enum ChoiceRole {
 impl ChoiceRole {
     pub fn as_str(&self) -> &'static str {
         match self {
-            ChoiceRole::Mpn1 => "Mpn1",
-            ChoiceRole::Alternative => "alternative",
-            ChoiceRole::Candidate => "candidate",
+            Self::Mpn1 => "Mpn1",
+            Self::Alternative => "alternative",
+            Self::Candidate => "candidate",
         }
     }
 }
@@ -219,7 +221,7 @@ fn local(item: &BomItem, name: &str) -> String {
         .map(|v| v.to_string())
         .unwrap_or_default()
         .trim()
-        .to_string()
+        .to_owned()
 }
 
 /// The line's match group (BOM-26, `bom_item.match_group`), when it has one
@@ -228,7 +230,7 @@ pub fn match_group(item: &BomItem) -> Option<String> {
         .as_deref()
         .map(str::trim)
         .filter(|s| !s.is_empty())
-        .map(str::to_string)
+        .map(str::to_owned)
 }
 
 /// The cheapest unit price for `need` over `rows`
@@ -246,7 +248,7 @@ fn fits(part: &Part, need: u32) -> Option<Money> {
 }
 
 impl BomExport {
-    pub fn new(bom: &Bom, cx: &ExportContext) -> BomExport {
+    pub fn new(bom: &Bom, cx: &ExportContext) -> Self {
         let parts = &bom.referenced_parts;
         // supplier columns: suppliers with rows of their own (not market offers)
         let mut own: Vec<CompanyId> = parts
@@ -354,28 +356,27 @@ impl BomExport {
                     .min()
                     .map(|(_, i)| i)
             };
-            let (preferred, enough) = match best(false).or_else(|| best(true)) {
-                Some(i) => (Some(i), true),
-                None => {
-                    let most = choices
-                        .iter()
-                        .enumerate()
-                        .max_by_key(|(i, c)| {
-                            let stock = parts
-                                .get(&c.part_id)
-                                .map(|p| p.supplier_stock_of(SupplyFilter::default()))
-                                .unwrap_or(0);
-                            (stock, std::cmp::Reverse(*i))
-                        })
-                        .map(|(i, _)| i);
-                    (most, false)
-                }
+            let (preferred, enough) = if let Some(i) = best(false).or_else(|| best(true)) {
+                (Some(i), true)
+            } else {
+                let most = choices
+                    .iter()
+                    .enumerate()
+                    .max_by_key(|(i, c)| {
+                        let stock = parts
+                            .get(&c.part_id)
+                            .map(|p| p.supplier_stock_of(SupplyFilter::default()))
+                            .unwrap_or(0);
+                        (stock, std::cmp::Reverse(*i))
+                    })
+                    .map(|(i, _)| i);
+                (most, false)
             };
 
             let match_group = match_group(item);
             let mut risks = vec![];
             if match_group.is_some() {
-                risks.push("ONE MPN PER BOARD, DO NOT MIX REELS".to_string());
+                risks.push("ONE MPN PER BOARD, DO NOT MIX REELS".to_owned());
             }
             if !enough {
                 risks.push(format!("no supplier has {need}"));
@@ -406,7 +407,7 @@ impl BomExport {
                 .find_map(supplier_description)
                 .unwrap_or_else(|| local(item, "Description"));
             let footprint = local(item, "Footprint");
-            let footprint = footprint.rsplit(':').next().unwrap_or("").to_string();
+            let footprint = footprint.rsplit(':').next().unwrap_or("").to_owned();
             lines.push(ExportLine {
                 number: idx + 1,
                 designators: item.designators.clone(),
@@ -425,7 +426,8 @@ impl BomExport {
 
         let mut source = format!("BOM {}", bom.id.0);
         if !bom.header.description.trim().is_empty() {
-            source.push_str(&format!(" · {}", bom.header.description.trim()));
+            source.push_str(" · ");
+            source.push_str(bom.header.description.trim());
         }
         let bom_param = |names: &[&str]| {
             names
@@ -435,13 +437,15 @@ impl BomExport {
                 .filter(|s| !s.trim().is_empty())
         };
         if let Some(file) = bom_param(&["source file", "source_file", "file"]) {
-            source.push_str(&format!(" · {file}"));
+            source.push_str(" · ");
+            source.push_str(&file);
         }
         if let Some(commit) = bom_param(&["git commit", "git_commit", "commit"]) {
-            source.push_str(&format!(" @ {commit}"));
+            source.push_str(" @ ");
+            source.push_str(&commit);
         }
 
-        BomExport {
+        Self {
             product: cx.product.clone(),
             board: cx.board.clone(),
             title: cx.title.clone(),
@@ -486,7 +490,7 @@ impl ExportChoice {
             &self.maker
         };
         let supply = if supply.is_empty() {
-            "no supplier data".to_string()
+            "no supplier data".to_owned()
         } else {
             supply.join("  ")
         };
@@ -509,7 +513,9 @@ pub fn human(n: i64) -> String {
 /// a candidate taking over, nobody having enough, a single-maker IC, a match group, a broker's market offer)
 #[doc(hidden)]
 pub mod fixture {
-    use super::*;
+    use super::{
+        Bom, BomItem, CompanyId, ExportContext, HashSet, Money, NaiveDate, Part, PartId, PartSupply,
+    };
     use crate::endpoints::bom::{BomGroupId, BomHeader, BomId, BomItemId};
     use crate::endpoints::folder::FolderId;
     use crate::endpoints::parameter::ParameterDefId;
@@ -717,7 +723,7 @@ pub mod fixture {
             (BROKER, "Brokerama"),
         ]
         .into_iter()
-        .map(|(id, n)| (id, n.to_string()))
+        .map(|(id, n)| (id, n.to_owned()))
         .collect();
         Bom {
             id: BomId(31),
@@ -766,10 +772,10 @@ pub mod fixture {
                 (106, "Abracon"),
             ]
             .into_iter()
-            .map(|(id, n)| (CompanyId(id), n.to_string()))
+            .map(|(id, n)| (CompanyId(id), n.to_owned()))
             .collect(),
             boards: 25,
-            date: NaiveDate::from_ymd_opt(2026, 11, 11).unwrap(),
+            date: NaiveDate::from_ymd_opt(2026, 11, 11).expect("the fixture date is valid"),
         }
     }
 }
@@ -790,7 +796,11 @@ mod tests {
         );
         assert_eq!(e.part_count(), 6);
         assert_eq!(e.width(), 2);
+    }
 
+    #[test]
+    fn fixture_resistor_line() {
+        let e = BomExport::new(&bom(), &context());
         // R: the cheapest that is in stock (LCSC's YAGEO), chip R is not a single-maker risk
         let r = &e.lines[0];
         assert_eq!(r.need, 50);
@@ -800,7 +810,11 @@ mod tests {
         assert_eq!(r.description, "RES 10K OHM 1% 1/16W 0402");
         assert_eq!(r.choices[0].supply[2].unwrap().stock, 2_000_000);
         assert!(r.choices[0].supply[1].is_none());
+    }
 
+    #[test]
+    fn fixture_regulator_line() {
+        let e = BomExport::new(&bom(), &context());
         // U: the real choice is short, the candidate takes over
         let u = &e.lines[1];
         assert_eq!(u.preferred, Some(1));
@@ -808,7 +822,11 @@ mod tests {
         assert!(u.enough && u.choices[0].short && !u.choices[1].short);
         assert_eq!(u.description, "IC REG LINEAR 3.3V 500MA SOT23-5");
         assert_eq!(u.risks, ["single maker (Texas Instruments)"]);
+    }
 
+    #[test]
+    fn fixture_connector_line() {
+        let e = BomExport::new(&bom(), &context());
         // J: only Arrow (market, authorized) has 25; the broker is listed after it
         let j = &e.lines[2];
         assert!(j.enough);
@@ -816,7 +834,11 @@ mod tests {
         assert_eq!(j.choices[0].others[0].seller, "Arrow Electronics");
         assert!(!j.choices[0].others[1].authorized);
         assert_eq!(j.risks, ["single maker (GCT)"]);
+    }
 
+    #[test]
+    fn fixture_crystal_line() {
+        let e = BomExport::new(&bom(), &context());
         // Y: match group first among the risks; "Unknown" is no maker
         let y = &e.lines[3];
         assert_eq!(y.match_group.as_deref(), Some("Y:crystal pair"));

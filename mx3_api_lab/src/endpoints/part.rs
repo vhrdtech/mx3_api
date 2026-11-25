@@ -72,7 +72,7 @@ impl MxClient {
     ) -> Promise<LookupPartsResult> {
         let (req, rx) = RequestInitiator::post_json_arg("lookup_parts".into(), lookup_parts);
         match self.request_tx.send(req) {
-            Ok(_) => Promise::waiting(rx, marker),
+            Ok(()) => Promise::waiting(rx, marker),
             Err(_) => Promise::error(Error::RequestDispatcherNotAvailable, marker),
         }
     }
@@ -80,7 +80,7 @@ impl MxClient {
     pub fn get_part(&self, id: PartId, marker: &'static str) -> Promise<Part> {
         let (req, rx) = RequestInitiator::post_json_arg("get_part".into(), &id);
         match self.request_tx.send(req) {
-            Ok(_) => Promise::waiting(rx, marker),
+            Ok(()) => Promise::waiting(rx, marker),
             Err(_) => Promise::error(Error::RequestDispatcherNotAvailable, marker),
         }
     }
@@ -291,7 +291,7 @@ impl Part {
         self.supply
             .iter()
             .map(|s| {
-                let breaks: String = s.price_breaks.iter().map(|b| format!("{b} ")).collect();
+                let breaks: String = s.price_breaks.iter().map(|b| b.to_string() + " ").collect();
                 format!("{}: {}", s.packaging, breaks)
             })
             .collect()
@@ -402,7 +402,10 @@ mod tests {
             PartSupply::find_price_inner(200, &price_breaks),
             Some(Money::from_f32(0.16))
         );
+    }
 
+    #[test]
+    fn find_price_starts_at_first_break() {
         let price_breaks = vec![
             PriceBreak {
                 break_quantity: 1000,

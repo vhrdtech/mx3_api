@@ -24,7 +24,7 @@ pub struct MxClient {
 impl MxClient {
     pub fn new(base_url: impl AsRef<str>, ui_repaint: tokio::sync::mpsc::Sender<()>) -> Self {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
-        let base_url = base_url.as_ref().to_string();
+        let base_url = base_url.as_ref().to_owned();
         tokio::spawn(async move {
             request_dispatcher(rx, ui_repaint, base_url).await;
         });
@@ -53,14 +53,14 @@ impl MxClient {
         marker: &'static str,
     ) -> Promise<T> {
         match self.request_tx.send(req) {
-            Ok(_) => Promise::waiting(rx, marker),
+            Ok(()) => Promise::waiting(rx, marker),
             Err(_) => Promise::error(Error::RequestDispatcherNotAvailable, marker),
         }
     }
 
     pub fn set_backend_url(&self, url: String) {
         let r = self.request_tx.send(RequestInitiator {
-            endpoint: "".to_string(),
+            endpoint: String::new(),
             kind: RequestKind::SetBaseUrl(url),
             timeout: None,
             response_tx: None,
@@ -72,11 +72,9 @@ impl MxClient {
 
     /// The client token (PLT-18) every following request carries as `Authorization: Bearer`.
     pub fn set_token(&self, token: Option<String>) {
-        let token = token
-            .map(|t| t.trim().to_string())
-            .filter(|t| !t.is_empty());
+        let token = token.map(|t| t.trim().to_owned()).filter(|t| !t.is_empty());
         let r = self.request_tx.send(RequestInitiator {
-            endpoint: "".to_string(),
+            endpoint: String::new(),
             kind: RequestKind::SetToken(token),
             timeout: None,
             response_tx: None,
@@ -194,7 +192,7 @@ pub(crate) fn send_req<T: DeserializeOwned>(
     marker: &'static str,
 ) -> Promise<T> {
     match request_tx.send(req) {
-        Ok(_) => Promise::waiting(rx, marker),
+        Ok(()) => Promise::waiting(rx, marker),
         Err(_) => Promise::error(Error::RequestDispatcherNotAvailable, marker),
     }
 }

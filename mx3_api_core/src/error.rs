@@ -8,12 +8,12 @@ pub struct ErrorBody {
     pub error: String,
 }
 
-/// The message in a failed answer's body: the `error` of an [ErrorBody], else the body as it is (the mail and
+/// The message in a failed answer's body: the `error` of an [`ErrorBody`], else the body as it is (the mail and
 /// records endpoints answer plain text).
 pub fn error_message(body: &str) -> String {
     match serde_json::from_str::<ErrorBody>(body) {
         Ok(e) => e.error,
-        Err(_) => body.to_string(),
+        Err(_) => body.to_owned(),
     }
 }
 

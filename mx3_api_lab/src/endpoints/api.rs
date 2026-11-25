@@ -11,7 +11,7 @@ impl ApiKeyId {
     }
 
     pub const fn hack(id: i32) -> Self {
-        ApiKeyId(id)
+        Self(id)
     }
 }
 

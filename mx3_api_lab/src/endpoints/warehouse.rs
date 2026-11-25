@@ -83,7 +83,7 @@ pub struct RegisterStockReq {
     /// Return an error if part with this name already exists
     pub require_new_part: bool,
     pub quantity: u32,
-    /// set parent_box_id to id of this box serial for the newly created or existing box
+    /// set `parent_box_id` to id of this box serial for the newly created or existing box
     pub move_box_into_box: Option<String>,
     pub set_part_params: Vec<(String, Variant)>,
     pub set_box_item_params: Vec<(String, Variant)>,
@@ -104,7 +104,7 @@ pub enum BoxTreeFilter {
 pub struct BoxTreeItem {
     pub id: BoxId,
     pub serial: String,
-    pub children: Vec<BoxTreeItem>,
+    pub children: Vec<Self>,
 }
 
 #[cfg(feature = "client")]
@@ -133,6 +133,10 @@ impl MxClient {
         self.send_req(req, rx, marker)
     }
 
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "public signature mx3's callers use; changing it is its own API change"
+    )]
     pub fn box_tree(
         &self,
         filter: BoxTreeFilter,
@@ -162,8 +166,7 @@ impl BoxItemId {
 impl BoxItemMove {
     pub fn from_box(&self) -> BoxId {
         match self {
-            BoxItemMove::ToSerial { from_box, .. } => *from_box,
-            BoxItemMove::ToNewBox { from_box, .. } => *from_box,
+            Self::ToSerial { from_box, .. } | Self::ToNewBox { from_box, .. } => *from_box,
         }
     }
 }

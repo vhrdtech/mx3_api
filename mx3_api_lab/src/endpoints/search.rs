@@ -41,14 +41,14 @@ pub enum ParametricSearchKind {
 impl ParametricSearchKind {
     /// The search on facts a resistor or capacitor search stands for, with the definitions named here by curated key, on the
     /// caller's side: the backend names no parameter. Other kinds are returned as they are.
-    pub fn lower(self) -> ParametricSearchKind {
+    pub fn lower(self) -> Self {
         let term = |key: &str, op, tolerance| SearchTerm {
             def: DefRef::Key(key.into()),
             op,
             tolerance,
         };
         let terms = match self {
-            ParametricSearchKind::Resistor { resistance_ohms } => {
+            Self::Resistor { resistance_ohms } => {
                 // the definition's own tolerance, in f64
                 vec![term(
                     "resistance",
@@ -56,7 +56,7 @@ impl ParametricSearchKind {
                     None,
                 )]
             }
-            ParametricSearchKind::Capacitor {
+            Self::Capacitor {
                 capacitance_farads,
                 voltage_volts,
                 is_voltage_eq,
@@ -81,7 +81,7 @@ impl ParametricSearchKind {
             }
             other => return other,
         };
-        ParametricSearchKind::Facts(ParamSearch {
+        Self::Facts(ParamSearch {
             terms,
             owner: SearchOwner::Part,
             in_warehouse: false,
@@ -91,8 +91,8 @@ impl ParametricSearchKind {
 
 impl ParametricSearch {
     /// This search with its kind lowered to facts ([`ParametricSearchKind::lower`]).
-    pub fn lowered(self) -> ParametricSearch {
-        ParametricSearch {
+    pub fn lowered(self) -> Self {
+        Self {
             kind: self.kind.lower(),
             ..self
         }
@@ -101,6 +101,10 @@ impl ParametricSearch {
 
 #[cfg(feature = "client")]
 impl MxClient {
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "public signature mx3's callers use; changing it is its own API change"
+    )]
     pub fn search_dk_product_details(
         &self,
         query: SearchDigiKeyProductDetails,

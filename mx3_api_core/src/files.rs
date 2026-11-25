@@ -1,9 +1,13 @@
+//! Files kept outside the database.
+//!
 //! Files kept outside the database (WH-25 part and box photos, MAIL-9 raw mail): the DB holds a relative path
 //! into a Syncthing share on the backend host, the bytes live as files. These are the export calls that move
 //! what is still only in the DB out to files; both areas use the same request and report.
 
 use serde::{Deserialize, Serialize};
 
+/// One export pass over rows without a file or with a wrong one.
+///
 /// One pass of `POST /file/export` or `POST /mail/export`: rows with `id > after_id`, at most `limit` of them,
 /// in id order. A row without a path gets its file written and the path set; a row with a path has its file
 /// checked (present and the right size; the content hash too with `verify`) and rewritten from the DB copy when
@@ -27,7 +31,7 @@ pub struct ExportRequest {
 pub struct ExportReport {
     /// Rows looked at in this pass
     pub seen: u64,
-    /// Written now (or would be, with dry_run)
+    /// Written now (or would be, with `dry_run`)
     pub exported: u64,
     /// Already on disk and fine
     pub kept: u64,
@@ -50,7 +54,7 @@ pub struct ExportReport {
 }
 
 impl ExportReport {
-    pub fn add(&mut self, o: &ExportReport) {
+    pub fn add(&mut self, o: &Self) {
         self.seen += o.seen;
         self.exported += o.exported;
         self.kept += o.kept;

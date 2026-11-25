@@ -1,3 +1,5 @@
+//! Market checks (INT-16).
+//!
 //! Market checks (INT-16): one look-up per part at Octopart (Nexar) returns every distributor's offers (Arrow,
 //! Farnell, TME, LCSC, Digi-Key, Mouser, ...). Nexar bills by matched part from a small budget, so a request names
 //! the parts, can ask what it would spend first (`dry_run`), and reuses a look-up younger than a day. Nexar's terms

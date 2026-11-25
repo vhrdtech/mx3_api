@@ -18,13 +18,13 @@ pub enum Supplier {
 }
 
 impl Supplier {
-    pub const ALL: [Supplier; 3] = [Supplier::DigiKey, Supplier::Mouser, Supplier::Lcsc];
+    pub const ALL: [Self; 3] = [Self::DigiKey, Self::Mouser, Self::Lcsc];
 
     pub fn name(&self) -> &'static str {
         match self {
-            Supplier::DigiKey => "Digi-Key",
-            Supplier::Mouser => "Mouser",
-            Supplier::Lcsc => "LCSC",
+            Self::DigiKey => "Digi-Key",
+            Self::Mouser => "Mouser",
+            Self::Lcsc => "LCSC",
         }
     }
 }
@@ -155,7 +155,7 @@ pub struct QueuedPart {
     pub maker: String,
     /// The `crawl_priority` score: higher first
     pub score: f64,
-    /// The kind of part (`crawl_kind`): ic, resistor_chip, ...
+    /// The kind of part (`crawl_kind`): ic, `resistor_chip`, ...
     pub kind: String,
     /// Why it has that score, one reason per line
     pub why: Vec<String>,
@@ -278,8 +278,8 @@ pub enum QuotaLimit {
 impl QuotaLimit {
     pub fn get(self) -> Option<u32> {
         match self {
-            QuotaLimit::None => None,
-            QuotaLimit::At(n) => Some(n),
+            Self::None => None,
+            Self::At(n) => Some(n),
         }
     }
 }

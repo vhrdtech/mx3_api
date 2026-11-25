@@ -1,3 +1,5 @@
+//! BOM-28: revision chains.
+//!
 //! BOM-28: revision chains. A BOM is one revision of a chain: the PCB's `main` line of development, or a split-off
 //! variant started from another revision. A revision is working or frozen (released, used by an assembled board, or
 //! frozen by hand); a frozen one never changes again but for its description. References name a revision the way
@@ -39,9 +41,9 @@ pub enum FreezeReason {
 impl fmt::Display for FreezeReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            FreezeReason::Released => "released",
-            FreezeReason::Used => "used",
-            FreezeReason::Manual => "frozen",
+            Self::Released => "released",
+            Self::Used => "used",
+            Self::Manual => "frozen",
         })
     }
 }
@@ -104,6 +106,8 @@ pub struct DescribeBom {
     pub description: String,
 }
 
+/// Delete working revisions of a chain.
+///
 /// Delete working revisions of `bom`'s chain: all but the newest `keep` (at least 1), only those created before
 /// `before` when given. Never a frozen revision, one a board refers to, or one a split-off chain started from.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -161,7 +165,7 @@ impl FromStr for BomRef {
         if !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit()) {
             return digits
                 .parse()
-                .map(|id| BomRef::Id(BomId(id)))
+                .map(|id| Self::Id(BomId(id)))
                 .map_err(|e| format!("{s}: {e}"));
         }
         let (rest, rev) = match s.rsplit_once('@') {
@@ -175,21 +179,21 @@ impl FromStr for BomRef {
                 } else if rev.is_empty() {
                     return Err(format!("{s}: nothing after @"));
                 } else {
-                    RevSel::Label(rev.to_string())
+                    RevSel::Label(rev.to_owned())
                 };
                 (rest, sel)
             }
             None => (s, RevSel::Newest),
         };
         let (pcb, chain) = match rest.rsplit_once(':') {
-            Some((pcb, chain)) => (pcb.trim(), Some(chain.trim().to_string())),
+            Some((pcb, chain)) => (pcb.trim(), Some(chain.trim().to_owned())),
             None => (rest.trim(), None),
         };
         if pcb.is_empty() {
             return Err(format!("{s}: no PCB named"));
         }
-        Ok(BomRef::Chain {
-            pcb: pcb.to_string(),
+        Ok(Self::Chain {
+            pcb: pcb.to_owned(),
             chain: chain.filter(|c| !c.is_empty()),
             rev,
         })
@@ -202,9 +206,9 @@ pub fn find_pcb<'a>(pcbs: &'a [Pcb], text: &str) -> Result<&'a Pcb, String> {
     let t = text.trim();
     let lower = t.to_lowercase();
     let (name, rev) = if let Some((n, r)) = lower.split_once(" rev ") {
-        (n.trim().to_string(), Some(r.trim().to_string()))
+        (n.trim().to_owned(), Some(r.trim().to_owned()))
     } else if let Some((n, r)) = lower.rsplit_once('/') {
-        (n.trim().to_string(), Some(r.trim().to_string()))
+        (n.trim().to_owned(), Some(r.trim().to_owned()))
     } else {
         (lower.clone(), None)
     };
@@ -281,9 +285,9 @@ pub fn resolve<'a>(
                     p.name,
                     p.revision,
                     match rev {
-                        RevSel::Newest => "at all".to_string(),
+                        RevSel::Newest => "at all".to_owned(),
                         RevSel::Rev(n) => format!("r{n}"),
-                        RevSel::Released => "released".to_string(),
+                        RevSel::Released => "released".to_owned(),
                         RevSel::Label(l) => l.clone(),
                     }
                 )
@@ -367,7 +371,7 @@ mod tests {
             chain_id: BomChainId(0),
             chain: chain.into(),
             rev,
-            release: release.map(str::to_string),
+            release: release.map(str::to_owned),
             freeze_reason: release.map(|_| FreezeReason::Released),
             frozen_at: None,
             head: false,
@@ -398,14 +402,14 @@ mod tests {
         assert_eq!(
             "B153 rev B@r3".parse::<BomRef>().map(|r| match r {
                 BomRef::Chain { rev, .. } => rev,
-                _ => RevSel::Newest,
+                BomRef::Id(_) => RevSel::Newest,
             }),
             Ok(RevSel::Rev(3))
         );
         assert_eq!(
             "B153B@released".parse::<BomRef>().map(|r| match r {
                 BomRef::Chain { rev, .. } => rev,
-                _ => RevSel::Newest,
+                BomRef::Id(_) => RevSel::Newest,
             }),
             Ok(RevSel::Released)
         );

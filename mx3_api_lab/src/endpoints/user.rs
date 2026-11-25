@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct UserId(i32);
 
 impl UserId {
-    pub fn hack(id: i32) -> UserId {
-        UserId(id)
+    pub fn hack(id: i32) -> Self {
+        Self(id)
     }
 }

@@ -1,3 +1,5 @@
+//! A BOM line as a Digi-Key search.
+//!
 //! A BOM line as a Digi-Key search (SRCH-4, `mx3 bom suggest --digikey`): the category from the designator, the
 //! value and ratings the line asks for as parameter filters, the package from the footprint. A starting point the
 //! person narrows further; what the line doesn't say stays open.
@@ -33,7 +35,7 @@ pub fn package_of(footprint: &str) -> Option<String> {
     footprint
         .split([':', '_', ' '])
         .find(|t| t.len() == 4 && t.chars().all(|c| c.is_ascii_digit()))
-        .map(str::to_string)
+        .map(str::to_owned)
 }
 
 /// `value` in `unit` with an SI prefix, four significant digits at most: 1e-7 F is `100nF`.
@@ -56,7 +58,7 @@ pub fn si_text(value: f64, unit: &str) -> String {
         .copied()
         .unwrap_or((1.0, ""));
     let n = value / scale;
-    let text = format!("{:.4}", n);
+    let text = format!("{n:.4}");
     let text = text.trim_end_matches('0').trim_end_matches('.');
     format!("{text}{prefix}{unit}")
 }
@@ -97,7 +99,7 @@ impl BomItem {
             op: FilterOp::Eq(vec![text]),
         };
         let mut q = PartSearch {
-            category: category_of(designator).map(str::to_string),
+            category: category_of(designator).map(str::to_owned),
             top: 10,
             ..Default::default()
         };
@@ -185,7 +187,7 @@ mod tests {
         assert_eq!(category_of("U1"), None);
     }
 
-    /// A line as an import makes it: `100n` and `4k7` as written in KiCad, the voltage, the footprint.
+    /// A line as an import makes it: `100n` and `4k7` as written in `KiCad`, the voltage, the footprint.
     #[test]
     fn line_values_as_bom_writes_them() {
         use crate::endpoints::bom::BomItemId;
@@ -203,7 +205,7 @@ mod tests {
                 .enumerate()
                 .map(|(i, (n, v))| {
                     Resolved::new(
-                        ParameterDefId(i as i32),
+                        ParameterDefId(i32::try_from(i).unwrap()),
                         n,
                         rvariant::Variant::Str(v.to_string()),
                     )
@@ -224,7 +226,7 @@ mod tests {
         )
         .supplier_search(&parts);
         assert_eq!(q.category.as_deref(), Some("Ceramic Capacitors"));
-        assert_eq!(q.package, vec!["0402".to_string()]);
+        assert_eq!(q.package, vec!["0402".to_owned()]);
         let f: Vec<String> = q.params.iter().map(|f| f.to_string()).collect();
         assert_eq!(f, vec!["Capacitance=100nF", "Voltage - Rated>=25V"]);
         let q = line("R7", &[("Value", "4k7"), ("Footprint", "R_0603")]).supplier_search(&parts);

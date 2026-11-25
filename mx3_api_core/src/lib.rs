@@ -13,6 +13,7 @@ pub mod money;
 pub use error::error_message;
 
 /// The wire level of the API (PRM-5): raised when a client of an older level can no longer talk to the backend.
+///
 /// Level 2: JSON on every endpoint (PLT-23) and parameters as facts. Clients send it in [`API_LEVEL_HEADER`]; the
 /// backend answers an older one, and any msgpack request (level 1 sent no header), with 426 and "update mx3".
 pub const API_LEVEL: u32 = 2;

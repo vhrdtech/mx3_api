@@ -15,8 +15,8 @@ pub struct CompanyId(pub i32);
 pub struct DigiKeyMfgId(pub i32);
 
 impl CompanyId {
-    pub fn hack(id: i32) -> CompanyId {
-        CompanyId(id)
+    pub fn hack(id: i32) -> Self {
+        Self(id)
     }
 }
 
@@ -24,7 +24,7 @@ impl CompanyId {
 pub struct Company {
     pub id: CompanyId,
     pub name: String,
-    pub synonyms: Vec<Company>, // pub website: String,
+    pub synonyms: Vec<Self>, // pub website: String,
     // pub logo: String,
     pub digikey_ids: Vec<DigiKeyMfgId>,
 }
@@ -45,6 +45,10 @@ impl MxClient {
         self.send_req(req, rx, marker)
     }
 
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "public signature mx3's callers use; changing it is its own API change"
+    )]
     pub fn create_company(
         &self,
         create_company: CreateCompany,

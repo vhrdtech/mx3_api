@@ -1,3 +1,5 @@
+//! The BOM lines a market check looks up.
+//!
 //! Which BOM lines a market check looks up (INT-16): the risky ones by default, named lines, or all, and the parts
 //! their real choices name. A market look-up spends a small budget per part, so the default asks only where the
 //! usual suppliers fall short.
@@ -228,7 +230,7 @@ mod tests {
         let got: Vec<(usize, Vec<String>)> =
             lines.iter().map(|l| (l.line, l.reasons.clone())).collect();
         // U2 has two makers and Mouser's 30 cover 10 boards
-        assert_eq!(got, [(1, vec!["single maker".to_string()])]);
+        assert_eq!(got, [(1, vec!["single maker".to_owned()])]);
         // at 100 boards U2 needs 100 and Mouser has 30
         let lines = market_lines(&b, None, &Selection::Risky, 100);
         let got: Vec<(usize, Vec<String>)> =
@@ -236,8 +238,8 @@ mod tests {
         assert_eq!(
             got,
             [
-                (1, vec!["single maker".to_string()]),
-                (2, vec!["Digi-Key/Mouser stock 30 < 100".to_string()]),
+                (1, vec!["single maker".to_owned()]),
+                (2, vec!["Digi-Key/Mouser stock 30 < 100".to_owned()]),
             ]
         );
         assert_eq!(parts_of(&lines), [PartId(2), PartId(3), PartId(4)]);

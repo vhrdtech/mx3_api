@@ -1,3 +1,5 @@
+//! Parametric search at Digi-Key (SRCH-4).
+//!
 //! Parametric search at Digi-Key (SRCH-4): narrow by category, package, stock, lifecycle and parameters the way
 //! the website does, see what values remain for the next step, take the cheapest at a quantity, and add picks as
 //! BOM line candidates (BOM-24). Filters by name and value text; the backend maps them to Digi-Key's ids.

@@ -105,7 +105,7 @@ fn old_param(item: &BomItem, name: &str) -> Option<String> {
         .iter()
         .filter(|p| !p.retracted && p.name.eq_ignore_ascii_case(name))
         .find_map(|p| p.raw.clone().or_else(|| p.value.as_non_empty_string().ok()))
-        .map(|s| s.trim().to_string())
+        .map(|s| s.trim().to_owned())
         .filter(|s| !s.is_empty())
 }
 
@@ -165,8 +165,8 @@ fn set_diff(label: &str, old: &BTreeSet<String>, new: &BTreeSet<String>) -> Opti
     Some(format!("{label} {}", parts.join(" ")))
 }
 
-fn text_change(label: &str, old: &Option<String>, new: Option<&str>) -> Option<String> {
-    let o = old.as_deref().unwrap_or("");
+fn text_change(label: &str, old: Option<&str>, new: Option<&str>) -> Option<String> {
+    let o = old.unwrap_or("");
     let n = new.unwrap_or("");
     (norm(o) != norm(n)).then(|| format!("{label} {} -> {}", or_dash(o), or_dash(n)))
 }
@@ -175,17 +175,9 @@ fn or_dash(s: &str) -> &str {
     if s.is_empty() { "-" } else { s }
 }
 
-/// Pair the lines of `new` with those of `prev`, carry the previous decisions into `new` (in place) and say what
-/// changed. `mpn_of` gives the part number of a part `new` names (the importer's picks); `has_match_column`:
-/// the file has a Match column, so its (possibly empty) match groups win.
-pub fn carry_over(
-    prev: &Bom,
-    new: &mut [CreateBomItem],
-    has_match_column: bool,
-    mpn_of: impl Fn(PartId) -> Option<String>,
-) -> RevisionDiff {
-    let olds: Vec<Old> = prev
-        .items
+/// The previous lines of `prev` as pairing works with them.
+fn previous_lines(prev: &Bom) -> Vec<Old<'_>> {
+    prev.items
         .iter()
         .map(|item| {
             let mpn = |p: &PartId| {
@@ -217,8 +209,11 @@ pub fn carry_over(
                 hand: item.hand_choices.clone(),
             }
         })
-        .collect();
+        .collect()
+}
 
+/// Pair each new line with a previous one (an index into `olds`) and the set of previous lines used.
+fn pair_lines(new: &[CreateBomItem], olds: &[Old]) -> (Vec<Option<usize>>, HashSet<usize>) {
     // pairing: a previous line whose part numbers and value match wins over one merely sharing more designators
     // (a merge moves most designators to the line that isn't the real continuation, BOM-29); among the rest,
     // designators first, then same part numbers and value among the previous lines left
@@ -255,7 +250,16 @@ pub fn carry_over(
             used.insert(o);
         }
     }
+    (pair, used)
+}
 
+/// The previous lines merged into each new line, marking them in `used`.
+fn merged_lines(
+    new: &[CreateBomItem],
+    olds: &[Old],
+    pair: &[Option<usize>],
+    used: &mut HashSet<usize>,
+) -> Vec<Vec<usize>> {
     // merge (BOM-29): a previous line nothing paired with, but whose designators now all sit inside one new
     // line's, was absorbed into it rather than removed. Ambiguous cases (none, or more than one, new line
     // containing it) are left alone, reported removed as before.
@@ -276,6 +280,92 @@ pub fn carry_over(
             used.insert(o);
         }
     }
+    merges
+}
+
+/// Copy the manual parameters of the previous line that `item` does not have yet; returns their names.
+fn carry_parameters(old: &BomItem, item: &mut CreateBomItem) -> Vec<String> {
+    let mut parameters_carried = vec![];
+    for p in &old.parameters {
+        if p.retracted
+            || p.source == BOM_IMPORT_SOURCE
+            || param(&item.parameters, &p.name).is_some()
+            || item
+                .manual_parameters
+                .keys()
+                .any(|k| k.eq_ignore_ascii_case(&p.name))
+        {
+            continue;
+        }
+        let text = p
+            .raw
+            .clone()
+            .or_else(|| p.value.as_non_empty_string().ok())
+            .unwrap_or_default();
+        if text.trim().is_empty() {
+            continue;
+        }
+        item.manual_parameters.insert(p.name.clone(), text);
+        parameters_carried.push(p.name.clone());
+    }
+    parameters_carried
+}
+
+/// Sort the parts of the contributing previous lines into carried and dropped, and the carried ones chosen by hand.
+fn carry_choices(
+    contributors: &[&Old],
+    mpns: &BTreeSet<String>,
+    value: Option<&str>,
+    footprint: Option<&str>,
+) -> (Vec<ChoiceCarry>, Vec<ChoiceCarry>, Vec<PartId>) {
+    let mut carried = vec![];
+    let mut dropped = vec![];
+    let mut hand_choices = vec![];
+    for src in contributors {
+        let same_value = norm(src.value.as_deref().unwrap_or("")) == norm(value.unwrap_or(""))
+            && norm(src.footprint.as_deref().unwrap_or("")) == norm(footprint.unwrap_or(""));
+        for (part, mpn, candidate) in &src.parts {
+            let by_hand = src.hand.contains(part);
+            let carry = |why: &str| ChoiceCarry {
+                part: *part,
+                mpn: mpn.clone(),
+                candidate: *candidate,
+                why: why.into(),
+            };
+            if mpns.contains(&norm(mpn)) {
+                carried.push(carry("same part number"));
+                if by_hand {
+                    hand_choices.push(*part);
+                }
+                continue;
+            }
+            if by_hand && same_value {
+                carried.push(carry("added by hand, value and footprint unchanged"));
+                hand_choices.push(*part);
+            } else if by_hand {
+                dropped.push(carry("added by hand, value or footprint changed"));
+            } else {
+                dropped.push(carry("part number no longer in the file"));
+            }
+        }
+    }
+    (carried, dropped, hand_choices)
+}
+
+/// Carries the decisions of a previous revision into a new one.
+///
+/// Pair the lines of `new` with those of `prev`, carry the previous decisions into `new` (in place) and say what
+/// changed. `mpn_of` gives the part number of a part `new` names (the importer's picks); `has_match_column`:
+/// the file has a Match column, so its (possibly empty) match groups win.
+pub fn carry_over(
+    prev: &Bom,
+    new: &mut [CreateBomItem],
+    has_match_column: bool,
+    mpn_of: impl Fn(PartId) -> Option<String>,
+) -> RevisionDiff {
+    let olds = previous_lines(prev);
+    let (pair, mut used) = pair_lines(new, &olds);
+    let merges = merged_lines(new, &olds, &pair, &mut used);
 
     let mut lines = vec![];
     for (n, item) in new.iter_mut().enumerate() {
@@ -298,18 +388,18 @@ pub fn carry_over(
             .chain(merges[n].iter().map(|&o2| &olds[o2]))
             .collect();
         let mpns = new_mpns(item);
-        let value = param(&item.parameters, "Value").map(str::to_string);
-        let footprint = param(&item.parameters, "Footprint").map(str::to_string);
+        let value = param(&item.parameters, "Value").map(str::to_owned);
+        let footprint = param(&item.parameters, "Footprint").map(str::to_owned);
         let mut changes = vec![];
         changes.extend(set_diff(
             "designators",
             &old.designators,
             &new_designators(item),
         ));
-        changes.extend(text_change("value", &old.value, value.as_deref()));
+        changes.extend(text_change("value", old.value.as_deref(), value.as_deref()));
         changes.extend(text_change(
             "footprint",
-            &old.footprint,
+            old.footprint.as_deref(),
             footprint.as_deref(),
         ));
         changes.extend(set_diff("part numbers", &old.mpns(), &mpns));
@@ -317,39 +407,8 @@ pub fn carry_over(
         // the previous lines' parts (the paired line, plus any merged into it): carried with their state, or
         // dropped; "by hand" (BOM-29) and "same value/footprint" are judged against each part's own previous
         // line, not necessarily the paired one
-        let mut carried = vec![];
-        let mut dropped = vec![];
-        let mut hand_choices = vec![];
-        for src in &contributors {
-            let same_value = norm(src.value.as_deref().unwrap_or(""))
-                == norm(value.as_deref().unwrap_or(""))
-                && norm(src.footprint.as_deref().unwrap_or(""))
-                    == norm(footprint.as_deref().unwrap_or(""));
-            for (part, mpn, candidate) in &src.parts {
-                let by_hand = src.hand.contains(part);
-                let carry = |why: &str| ChoiceCarry {
-                    part: *part,
-                    mpn: mpn.clone(),
-                    candidate: *candidate,
-                    why: why.into(),
-                };
-                if mpns.contains(&norm(mpn)) {
-                    carried.push(carry("same part number"));
-                    if by_hand {
-                        hand_choices.push(*part);
-                    }
-                    continue;
-                }
-                if by_hand && same_value {
-                    carried.push(carry("added by hand, value and footprint unchanged"));
-                    hand_choices.push(*part);
-                } else if by_hand {
-                    dropped.push(carry("added by hand, value or footprint changed"));
-                } else {
-                    dropped.push(carry("part number no longer in the file"));
-                }
-            }
-        }
+        let (carried, dropped, hand_choices) =
+            carry_choices(&contributors, &mpns, value.as_deref(), footprint.as_deref());
         // the previous decisions replace the importer's picks for the part numbers any contributing line had
         let decided: HashSet<String> = contributors
             .iter()
@@ -389,29 +448,7 @@ pub fn carry_over(
             ));
         }
 
-        let mut parameters_carried = vec![];
-        for p in &old.item.parameters {
-            if p.retracted
-                || p.source == BOM_IMPORT_SOURCE
-                || param(&item.parameters, &p.name).is_some()
-                || item
-                    .manual_parameters
-                    .keys()
-                    .any(|k| k.eq_ignore_ascii_case(&p.name))
-            {
-                continue;
-            }
-            let text = p
-                .raw
-                .clone()
-                .or_else(|| p.value.as_non_empty_string().ok())
-                .unwrap_or_default();
-            if text.trim().is_empty() {
-                continue;
-            }
-            item.manual_parameters.insert(p.name.clone(), text);
-            parameters_carried.push(p.name.clone());
-        }
+        let parameters_carried = carry_parameters(old.item, item);
 
         let merged_from: Vec<Vec<String>> = merges[n]
             .iter()
@@ -531,14 +568,14 @@ mod tests {
                 ];
                 parameters.extend(l.manual.iter().map(|(n, v)| param(n, v, "manual")));
                 BomItem {
-                    id: BomItemId(i as i32 + 100),
+                    id: BomItemId(i32::try_from(i).unwrap() + 100),
                     bom_id: BomId(30),
                     designators: l.designators.iter().map(|s| s.to_string()).collect(),
                     group_id: BomGroupId(1),
                     part_choices: l.choices.iter().map(|p| PartId(*p)).collect(),
                     candidates: l.candidates.iter().map(|p| PartId(*p)).collect(),
                     parameters,
-                    match_group: l.match_group.map(str::to_string),
+                    match_group: l.match_group.map(str::to_owned),
                     part_numbers: l.file.map(|f| f.iter().map(|s| s.to_string()).collect()),
                     hand_choices: l.hand.iter().map(|p| PartId(*p)).collect(),
                 }
@@ -651,7 +688,7 @@ mod tests {
         let mut choices = new[0].part_choices.clone();
         choices.sort_by_key(|p| p.0);
         assert_eq!(choices, vec![PartId(1), PartId(3)]);
-        assert!(new[0].candidates.is_empty());
+        assert_eq!(new[0].candidates, Vec::<PartId>::new());
         assert_eq!(new[0].match_group.as_deref(), Some("decoupling"));
         assert_eq!(
             new[0].manual_parameters.get("Note").map(String::as_str),
@@ -714,19 +751,19 @@ mod tests {
         let diff = carry_over(&p, &mut new, false, mpn_of);
         let c = &diff.lines[0];
         assert_eq!(c.kind, LineKind::Changed);
-        assert_eq!(c.changes, vec!["designators +C4 -C3".to_string()]);
+        assert_eq!(c.changes, vec!["designators +C4 -C3".to_owned()]);
         let r = &diff.lines[1];
         assert_eq!(r.kind, LineKind::Changed);
         assert!(
-            r.changes.contains(&"value 10k -> 13k3".to_string()),
+            r.changes.contains(&"value 10k -> 13k3".to_owned()),
             "{:?}",
             r.changes
         );
         assert_eq!(r.dropped.len(), 2);
-        assert!(new[1].part_choices.is_empty());
+        assert_eq!(new[1].part_choices, Vec::<PartId>::new());
         assert_eq!(diff.lines[2].kind, LineKind::Added);
         assert_eq!(diff.lines[3].kind, LineKind::Removed);
-        assert_eq!(diff.lines[3].designators, vec!["D1".to_string()]);
+        assert_eq!(diff.lines[3].designators, vec!["D1".to_owned()]);
         assert_eq!(diff.count(LineKind::Removed), 1);
     }
 
@@ -826,7 +863,7 @@ mod tests {
         let diff = carry_over(&p, &mut new, false, mpn_of);
         assert_eq!(diff.lines.len(), 1, "{:?}", diff.lines);
         let l = &diff.lines[0];
-        assert_eq!(l.kind, LineKind::Changed, "{:?}", l);
+        assert_eq!(l.kind, LineKind::Changed, "{l:?}");
         assert_eq!(l.previous_designators, vec!["Q501", "Q601"]);
         assert_eq!(
             l.merged_from,
@@ -882,10 +919,10 @@ mod tests {
         // Q1,Q2: still 2N7002, keeps its choice and candidate
         assert_eq!(new[0].part_choices, vec![PartId(8)]);
         assert_eq!(new[0].candidates, vec![PartId(9)]);
-        assert!(diff.lines[0].dropped.is_empty());
+        assert_eq!(diff.lines[0].dropped, Vec::<ChoiceCarry>::new());
         // Q3: value changed, the 2N7002 parts no longer fit and are dropped, not carried
-        assert!(new[1].part_choices.is_empty());
-        assert!(new[1].candidates.is_empty());
+        assert_eq!(new[1].part_choices, Vec::<PartId>::new());
+        assert_eq!(new[1].candidates, Vec::<PartId>::new());
         assert_eq!(
             diff.lines[1].dropped.len(),
             2,
