@@ -1,0 +1,9 @@
+# spl check runs the licence check on [licenses] (deny-licenses) and the advisories check on [advisories]
+
+[advisories]
+ignore = [
+  { id = "RUSTSEC-2026-0543", reason = "chrono, the date type of the wire format shared with mx3 and of rvariant; goes when both move to jiff" },
+]
+
+[licenses]
+allow = ["Apache-2.0 WITH LLVM-exception", "MIT", "Unicode-3.0", "Unlicense"]

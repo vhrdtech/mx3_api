@@ -12,7 +12,14 @@ publish = false
 [features]
 default = []
 # HTTP clients for the mx3 backend: a blocking client and an async one answering through polled promises
-client = ["dep:anyhow", "dep:reqwest", "dep:thiserror", "dep:tokio", "dep:tracing", "mx3_api_core/client"]
+client = [
+  "dep:anyhow",
+  "dep:reqwest",
+  "dep:thiserror",
+  "dep:tokio",
+  "dep:tracing",
+  "mx3_api_core/client",
+]
 # sqlx::Type on the id newtypes and enums, for a backend built on sqlx
 sqlx = ["dep:sqlx", "mx3_api_core/sqlx"]
 
@@ -23,7 +30,11 @@ human-repr.workspace = true
 itertools.workspace = true
 mpn_schemes.workspace = true
 mx3_api_core.workspace = true
-reqwest = { workspace = true, optional = true, features = ["blocking", "json", "multipart"] }
+reqwest = { workspace = true, optional = true, features = [
+  "blocking",
+  "json",
+  "multipart",
+] }
 rvariant.workspace = true
 serde.workspace = true
 serde_json.workspace = true

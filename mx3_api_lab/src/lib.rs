@@ -3,8 +3,8 @@
 //! shared by the backend and its clients, plus the BOM logic clients share (filters, cost, import, assembly).
 //!
 //! Features (all off by default; with none the crate is serde types and pure logic only):
-//! - `client`: [`blocking::BlockingClient`] and the async [`MxClient`], whose calls answer with a polled
-//!   [`Promise`]. reqwest with rustls; the async client needs a tokio runtime.
+//! - `client`: `blocking::BlockingClient` and the async `MxClient`, whose calls answer with a polled
+//!   `Promise`. reqwest with rustls; the async client needs a tokio runtime.
 //! - `sqlx`: `sqlx::Type` on the id newtypes and enums, for a backend built on sqlx and PostgreSQL.
 
 pub use mx3_api_core;

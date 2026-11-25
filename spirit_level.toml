@@ -6,3 +6,7 @@ extends = ["medium", "ai"]
 # level = "deny"
 # reason = "why"
 # expires = "2027-06-30"
+
+[lints.no-sys-crates]
+allow = ["cc", "wasm-bindgen-shared"]
+reason = "cc builds psm (pest's stack guard, through rvariant's si_dynamic parser) and ring under rustls with `client`; wasm-bindgen-shared is in the lock for chrono on wasm only; AGENTS.md \"Dependencies\""

@@ -2,7 +2,7 @@
 //! and the API level. With no features the crate is serde types only.
 //!
 //! Features (all off by default):
-//! - `client`: [`client_headers`], the headers every mx3 client sends.
+//! - `client`: `client_headers`, the headers every mx3 client sends.
 //! - `sqlx`: conversions between [`money::Money`] and PostgreSQL's `money`.
 
 pub mod base64_bytes;
@@ -30,7 +30,7 @@ pub fn client_headers() -> reqwest::header::HeaderMap {
     h.insert(API_LEVEL_HEADER, HeaderValue::from(API_LEVEL));
     h.insert(
         USER_AGENT,
-        HeaderValue::from_static(concat!("mx3/", env!("CARGO_PKG_VERSION"))),
+        HeaderValue::from_static(concat!("mx3_api/", env!("CARGO_PKG_VERSION"))),
     );
     h
 }
