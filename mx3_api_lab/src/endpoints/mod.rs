@@ -6,6 +6,7 @@ pub mod crawler;
 pub mod file;
 pub mod folder;
 pub mod fp_review;
+pub mod lib_cover;
 pub mod library;
 pub mod library_links;
 pub mod log;

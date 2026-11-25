@@ -398,10 +398,18 @@ pub struct ByMpnQuery {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum By {
+    /// A person said this document covers the part ([`CoverSpec::Mpn`](super::lib_cover::CoverSpec::Mpn)).
+    Cover,
     /// A fetch by part number saved or found this content for it.
     Link,
     /// A file's origin (its source or referrer) is one of the part's datasheet URLs.
     Source,
+    /// The part's MPN decode reading is in a family the document covers ([`CoverSpec::Family`](super::lib_cover::CoverSpec::Family)).
+    Family,
+    /// A pattern the document covers matches the part number ([`CoverSpec::Pattern`](super::lib_cover::CoverSpec::Pattern)).
+    Pattern,
+    /// The part number is printed on the document's first pages.
+    Text,
     /// A file with no origin URL whose name is the name of one of the part's datasheet URLs.
     Name,
 }
@@ -410,8 +418,12 @@ impl By {
     /// The word the JSON and the listing use.
     pub fn as_str(self) -> &'static str {
         match self {
+            Self::Cover => "cover",
             Self::Link => "link",
             Self::Source => "source",
+            Self::Family => "family",
+            Self::Pattern => "pattern",
+            Self::Text => "text",
             Self::Name => "name",
         }
     }
@@ -442,6 +454,9 @@ pub struct MpnDoc {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
     pub by: By,
+    /// The cover that matched, as [`CoverSpec::word`](super::lib_cover::CoverSpec::word) writes it: a pattern or a family
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover: Option<String>,
     /// The catalog's paths holding this content now, best first: one whose origin names `url`, then by path.
     /// Empty: no path holds it any more.
     #[serde(default)]

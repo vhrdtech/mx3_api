@@ -15,6 +15,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - Library lookup by part number: `/lib/by_mpn` types and client call, ranking, contract rows, local roots. Wire change (LAB-5).
 - `MpnDocs.known` and `MpnDocs.urls`: whether mx3 holds the part and its datasheet URLs. Wire change (LAB-5).
 - `/lib/links` types and client call: record which content a part number led to. Wire change (LAB-5).
+- Library coverage types and calls; `By` gains `cover`, `family`, `pattern`, `text`. Wire change (LAB-5).
 
 ### Changed
 
