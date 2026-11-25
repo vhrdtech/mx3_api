@@ -11,6 +11,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `client` and `sqlx` features, off by default: with none, serde types only (CORE-2).
 - `also` on `ParamAlias`, `AddAlias`, `EditAlias`; `also` aliases in `AliasResolved`; `added` and `retracted` renormalize counts. Wire change (LAB-1).
 - `mx3_api_lab::endpoints::library`: the document library's types and client calls: upload, have, text, catalog sync, search, docs, stats (LAB-5).
+- `mx3_api_lab::library::ident`: a document's number, revision and date from its text, and revision order; `Ident` and `Src` serialize (LAB-5).
 
 ### Changed
 

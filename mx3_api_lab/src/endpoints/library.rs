@@ -76,51 +76,7 @@ pub fn valid_path(s: &str) -> bool {
             .all(|seg| !seg.is_empty() && seg != "." && seg != "..")
 }
 
-/// Where the text says the revision or date: its footer, its revision history, its cover, the PDF's metadata.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum IdentSrc {
-    Footer,
-    History,
-    Cover,
-    Pdfmeta,
-}
-
-impl IdentSrc {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            IdentSrc::Footer => "footer",
-            IdentSrc::History => "history",
-            IdentSrc::Cover => "cover",
-            IdentSrc::Pdfmeta => "pdfmeta",
-        }
-    }
-
-    pub fn parse(s: &str) -> Option<Self> {
-        Some(match s {
-            "footer" => IdentSrc::Footer,
-            "history" => IdentSrc::History,
-            "cover" => IdentSrc::Cover,
-            "pdfmeta" => IdentSrc::Pdfmeta,
-            _ => return None,
-        })
-    }
-}
-
-/// The document a file is: the vendor's number, revision and date where its text says them clearly.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Ident {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub doc: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rev: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub date: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rev_src: Option<IdentSrc>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub date_src: Option<IdentSrc>,
-}
+pub use crate::library::ident::{Ident, Src as IdentSrc};
 
 /// How the day a file entered the library is known: added by hand, fetched, or only its modification time.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -492,7 +448,7 @@ mod tests {
             IdentSrc::Footer,
             IdentSrc::History,
             IdentSrc::Cover,
-            IdentSrc::Pdfmeta,
+            IdentSrc::PdfMeta,
         ] {
             assert_eq!(IdentSrc::parse(s.as_str()), Some(s));
             let j = serde_json::to_string(&s).unwrap();

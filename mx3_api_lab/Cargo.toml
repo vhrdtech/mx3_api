@@ -35,6 +35,7 @@ reqwest = { workspace = true, optional = true, features = [
   "json",
   "multipart",
 ] }
+regex.workspace = true
 rvariant.workspace = true
 serde.workspace = true
 serde_json.workspace = true

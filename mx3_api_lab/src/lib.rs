@@ -17,6 +17,7 @@ pub use promise::Promise;
 
 pub mod bom;
 pub mod endpoints;
+pub mod library;
 pub mod orders;
 pub mod supplier_search;
 pub mod warehouse;
