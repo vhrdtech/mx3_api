@@ -1,15 +1,19 @@
-//! The library's documents of a part number, found three ways, all by content hash, so a file that moved or was
+//! The library's documents of a part number, found four ways, all by content hash, so a file that moved or was
 //! renamed is still found:
 //!
 //! 1. The MPN's links: a fetch by part number records which content each MPN led to, saved or found there
 //!    already, with the URL it came from ([`By::Link`]).
 //! 2. The files whose origin (source or referrer) is one of the part's datasheet URLs, a redirect page seen
 //!    through ([`By::Source`]). A series catalogue then covers every MPN whose facts name it.
-//! 3. Last, a file with no origin URL whose name is the name of one of those URLs (`part1-spec.pdf`), never a name
+//! 3. The library's covers ([`CoverHit`]): a person said the document covers the part ([`By::Cover`]), its MPN
+//!    decode reading is in a family the document covers ([`By::Family`]), a pattern of the document matches the
+//!    MPN ([`By::Pattern`]), or the MPN is printed on the document's first pages ([`By::Text`]). The server finds
+//!    them; covers from facts and links are the two ways above.
+//! 4. Last, a file with no origin URL whose name is the name of one of those URLs (`part1-spec.pdf`), never a name
 //!    every site uses (`datasheet.pdf`) ([`By::Name`]).
 //!
-//! Several documents for one MPN come best first: a surer way, then the URL's rank (the order of the part's URLs),
-//! then the newest revision. [`rows`] turns the answer into one flat row per document with the path on this
+//! Several documents for one MPN come best first: a surer way, then the URL's rank (the order of the part's URLs;
+//! a person's cover ranks with the first URL, the other covers after every URL), then the newest revision. [`rows`] turns the answer into one flat row per document with the path on this
 //! computer, the JSON contract of `mx3 lib mpn --json`.
 //!
 //! The URLs and makers come from parts databases and distributors: untrusted text, only compared, never opened.
@@ -44,6 +48,15 @@ pub struct CatalogFile {
     pub ident: Ident,
     pub source: Option<String>,
     pub referrer: Option<String>,
+}
+
+/// A document the library's covers give for a part number: [`By::Cover`], [`By::Family`], [`By::Pattern`] or
+/// [`By::Text`], with the pattern or family that matched.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CoverHit {
+    pub hash: String,
+    pub by: By,
+    pub cover: Option<String>,
 }
 
 /// What mx3 knows of a part number.
@@ -104,11 +117,18 @@ fn file_name(p: &LibPath) -> String {
     p.path.rsplit('/').next().unwrap_or(&p.path).to_lowercase()
 }
 
-/// How a content was found: a surer way first, then the better URL.
-type Want = (By, usize, Option<String>);
+/// How a content was found: a surer way first, then the better URL; the URL and the cover that matched.
+type Want = (By, usize, Option<String>, Option<String>);
 
-/// One MPN's documents. `links` and `files` may hold other MPNs' too; `files` are the catalog's current ones.
-pub fn lookup(mpn: &str, part: &Part, links: &[Link], files: &[CatalogFile]) -> MpnDocs {
+/// One MPN's documents. `links` and `files` may hold other MPNs' too; `files` are the catalog's current ones;
+/// `covers` are this MPN's.
+pub fn lookup(
+    mpn: &str,
+    part: &Part,
+    links: &[Link],
+    files: &[CatalogFile],
+    covers: &[CoverHit],
+) -> MpnDocs {
     let (maker, urls) = match part {
         Part::Unknown => (None, &[][..]),
         Part::Known { maker, urls } => (maker.clone(), &urls[..]),
@@ -122,8 +142,8 @@ pub fn lookup(mpn: &str, part: &Part, links: &[Link], files: &[CatalogFile]) -> 
         .collect();
     let rank_of = |u: Option<&str>| u.and_then(|u| rank.get(u).copied());
     let mut want: BTreeMap<String, Want> = BTreeMap::new();
-    let mut add = |h: &str, by: By, r: usize, u: Option<&str>| {
-        let new = (by, r, u.map(str::to_owned));
+    let mut add = |h: &str, by: By, r: usize, u: Option<&str>, c: Option<&str>| {
+        let new = (by, r, u.map(str::to_owned), c.map(str::to_owned));
         let e = want.entry(h.to_owned()).or_insert_with(|| new.clone());
         if (new.0, new.1) < (e.0, e.1) {
             *e = new;
@@ -133,7 +153,7 @@ pub fn lookup(mpn: &str, part: &Part, links: &[Link], files: &[CatalogFile]) -> 
     for l in my_links.clone() {
         // a link of a URL mx3 no longer names comes after mx3's own
         let r = rank_of(Some(&l.url)).unwrap_or(urls.len());
-        add(&l.hash, By::Link, r, Some(&l.url));
+        add(&l.hash, By::Link, r, Some(&l.url), None);
     }
     let names: Vec<(usize, &String, String)> = urls
         .iter()
@@ -146,17 +166,25 @@ pub fn lookup(mpn: &str, part: &Part, links: &[Link], files: &[CatalogFile]) -> 
             .filter_map(|u| rank_of(u).map(|r| (r, u)))
             .min_by_key(|(r, _)| *r);
         if let Some((r, u)) = by {
-            add(&f.hash, By::Source, r, u);
+            add(&f.hash, By::Source, r, u, None);
         } else if f.source.is_none() {
             let name = file_name(&f.at);
             if let Some((r, u, _)) = names.iter().find(|(_, _, n)| *n == name) {
-                add(&f.hash, By::Name, *r, Some(u));
+                add(&f.hash, By::Name, *r, Some(u), None);
             }
         }
     }
+    for c in covers {
+        let r = if c.by == By::Cover { 0 } else { urls.len() };
+        add(&c.hash, c.by, r, None, c.cover.as_deref());
+    }
     let mut found: Vec<(usize, MpnDoc)> = want
         .into_iter()
-        .map(|(h, (by, r, u))| (r, doc_of(h, by, u, files)))
+        .map(|(h, (by, r, u, c))| {
+            let mut d = doc_of(h, by, u, files);
+            d.cover = c;
+            (r, d)
+        })
         .collect();
     found.sort_by(|(ra, a), (rb, b)| order(*ra, a).cmp(&order(*rb, b)));
     let why = found.is_empty().then(|| {
@@ -213,6 +241,7 @@ fn doc_of(hash: String, by: By, url: Option<String>, files: &[CatalogFile]) -> M
         hash,
         url,
         by,
+        cover: None,
     }
 }
 
@@ -254,6 +283,9 @@ pub struct MpnRow {
     /// The URL that led to it
     pub url: Option<String>,
     pub by: Option<By>,
+    /// The pattern or family that matched ([`By::Pattern`], [`By::Family`])
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover: Option<String>,
     /// Why there is no path: no document, or none of its files on this computer
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub why: Option<String>,
@@ -276,6 +308,7 @@ pub fn rows(answer: &[MpnDocs], roots: &Roots) -> Vec<MpnRow> {
                 date: None,
                 url: None,
                 by: None,
+                cover: None,
                 why: Some(m.why.clone().unwrap_or_else(|| "no document".to_owned())),
             });
             continue;
@@ -312,6 +345,7 @@ fn row(m: &MpnDocs, d: &MpnDoc, roots: &Roots) -> MpnRow {
         date: d.ident.date.clone(),
         url: d.url.clone(),
         by: Some(d.by),
+        cover: d.cover.clone(),
         why,
     }
 }
@@ -388,7 +422,7 @@ mod tests {
             link("P1", "h-gone", "https://maker.example/ds.pdf"),
             link("P2", "h-maker", "https://maker.example/ds.pdf"),
         ];
-        let got = lookup("P1", &part, &links, &files);
+        let got = lookup("P1", &part, &links, &files, &[]);
         assert_eq!(got.maker.as_deref(), Some("Maker"));
         assert_eq!(got.why, None);
         let docs: Vec<(&str, By, Option<&str>)> = got
@@ -417,9 +451,55 @@ mod tests {
         assert_eq!(got.docs[0].ident.rev.as_deref(), Some("B"));
     }
 
+    /// The library's covers join the other ways: a person's cover ranks with the first URL, a pattern or a family
+    /// after every URL, a surer way of the same content wins.
+    #[test]
+    fn covers_join_the_answer() {
+        let part = known(Some("Maker"), &["https://maker.example/ds.pdf"]);
+        let files = vec![
+            file(
+                "ds.pdf",
+                "h-src",
+                "DS1",
+                "A",
+                Some("https://maker.example/ds.pdf"),
+            ),
+            file("series.pdf", "h-pat", "CAT", "1", None),
+            file("person.pdf", "h-person", "DS1", "B", None),
+        ];
+        let hit = |h: &str, by: By, c: Option<&str>| CoverHit {
+            hash: h.into(),
+            by,
+            cover: c.map(String::from),
+        };
+        let covers = [
+            hit("h-pat", By::Pattern, Some("P1*")),
+            hit("h-person", By::Cover, None),
+            hit("h-src", By::Text, None),
+        ];
+        let got = lookup("P1", &part, &[], &files, &covers);
+        let docs: Vec<(&str, By, Option<&str>)> = got
+            .docs
+            .iter()
+            .map(|d| (d.hash.as_str(), d.by, d.cover.as_deref()))
+            .collect();
+        assert_eq!(
+            docs,
+            [
+                ("h-person", By::Cover, None),
+                ("h-src", By::Source, None),
+                ("h-pat", By::Pattern, Some("P1*")),
+            ]
+        );
+        // a part mx3 does not know is found by a pattern alone
+        let got = lookup("P1", &Part::Unknown, &[], &files, &covers[..1]);
+        assert_eq!(got.why, None);
+        assert_eq!(got.docs[0].paths[0].path, "series.pdf");
+    }
+
     #[test]
     fn why_there_is_none() {
-        let why = |part: &Part| lookup("P", part, &[], &[]).why.unwrap();
+        let why = |part: &Part| lookup("P", part, &[], &[], &[]).why.unwrap();
         assert_eq!(why(&Part::Unknown), "not in mx3");
         assert_eq!(why(&known(Some("Acme"), &[])), "mx3 has no datasheet URL");
         assert_eq!(
@@ -428,7 +508,7 @@ mod tests {
         );
         // a part mx3 does not know, but a link of it
         let l = [link("P", "h", "https://acme.example/p.pdf")];
-        let got = lookup("P", &Part::Unknown, &l, &[]);
+        let got = lookup("P", &Part::Unknown, &l, &[], &[]);
         assert_eq!(got.docs.len(), 1);
         assert_eq!(got.docs[0].paths, []);
     }
@@ -448,7 +528,7 @@ mod tests {
             "C",
             Some("https://www.example.com/lit/gpn/part1"),
         )];
-        let got = lookup("PART1", &part, &[], &files);
+        let got = lookup("PART1", &part, &[], &files, &[]);
         assert_eq!(got.docs[0].by, By::Source);
         assert_eq!(
             got.docs[0].url.as_deref(),
@@ -485,7 +565,7 @@ mod tests {
             file("Maker/part1-new.pdf", "h-link", "", "", None),
         ];
         let links = vec![link("PART1-A", "h-link", "https://maker.example/new.pdf")];
-        let got = lookup("PART1-A", &part, &links, &files);
+        let got = lookup("PART1-A", &part, &links, &files, &[]);
         let docs: Vec<(&str, By)> = got.docs.iter().map(|d| (d.hash.as_str(), d.by)).collect();
         assert_eq!(docs, [("h-link", By::Link), ("h-old", By::Name)]);
         assert_eq!(got.docs[1].url.as_deref(), Some(urls[0]));
@@ -517,6 +597,7 @@ mod tests {
             date: None,
             url: Some("https://m.example/a.pdf".into()),
             by: Some(By::Source),
+            cover: None,
             why: None,
         };
         let j = serde_json::to_value(&found).unwrap();
@@ -555,6 +636,7 @@ mod tests {
             },
             url: None,
             by: By::Link,
+            cover: None,
             paths: paths.iter().map(|p| at("ds", p)).collect(),
         };
         let answer = [
