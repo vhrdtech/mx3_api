@@ -7,6 +7,7 @@ pub mod file;
 pub mod folder;
 pub mod fp_review;
 pub mod library;
+pub mod library_links;
 pub mod log;
 pub mod market;
 pub mod mpn;

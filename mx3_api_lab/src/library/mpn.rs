@@ -171,6 +171,8 @@ pub fn lookup(mpn: &str, part: &Part, links: &[Link], files: &[CatalogFile]) -> 
     MpnDocs {
         mpn: mpn.to_owned(),
         maker,
+        known: matches!(part, Part::Known { .. }),
+        urls: urls.to_vec(),
         docs: found.into_iter().map(|(_, d)| d).collect(),
         why,
     }
@@ -389,6 +391,15 @@ mod tests {
         let got = lookup("P1", &part, &links, &files);
         assert_eq!(got.maker.as_deref(), Some("Maker"));
         assert_eq!(got.why, None);
+        // a fetch by part number tries the part's URLs in mx3's order
+        assert!(got.known);
+        assert_eq!(
+            got.urls,
+            [
+                "https://maker.example/ds.pdf",
+                "https://mirror.example/copy.pdf"
+            ]
+        );
         let docs: Vec<(&str, By, Option<&str>)> = got
             .docs
             .iter()
@@ -427,6 +438,7 @@ mod tests {
         // a part mx3 does not know, but a link of it
         let l = [link("P", "h", "https://acme.example/p.pdf")];
         let got = lookup("P", &Part::Unknown, &l, &[]);
+        assert!(!got.known && got.urls.is_empty());
         assert_eq!(got.docs.len(), 1);
         assert_eq!(got.docs[0].paths, []);
     }
@@ -559,6 +571,8 @@ mod tests {
             MpnDocs {
                 mpn: "P1".into(),
                 maker: Some("M".into()),
+                known: true,
+                urls: vec![],
                 docs: vec![
                     doc("h1", &["a/elsewhere.pdf"]),
                     doc("h2", &[]),
@@ -569,6 +583,8 @@ mod tests {
             MpnDocs {
                 mpn: "P2".into(),
                 maker: None,
+                known: false,
+                urls: vec![],
                 docs: vec![],
                 why: Some("not in mx3".into()),
             },

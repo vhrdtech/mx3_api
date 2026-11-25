@@ -13,6 +13,8 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `mx3_api_lab::endpoints::library`: the document library's types and client calls: upload, have, text, catalog sync, search, docs, stats (LAB-5).
 - `mx3_api_lab::library::ident`: a document's number, revision and date from its text, and revision order; `Ident` and `Src` serialize (LAB-5).
 - Library lookup by part number: `/lib/by_mpn` types and client call, ranking, contract rows, local roots. Wire change (LAB-5).
+- `MpnDocs.known` and `MpnDocs.urls`: whether mx3 holds the part and its datasheet URLs. Wire change (LAB-5).
+- `/lib/links` types and client call: record which content a part number led to. Wire change (LAB-5).
 
 ### Changed
 
