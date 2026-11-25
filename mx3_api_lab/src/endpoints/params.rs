@@ -156,6 +156,10 @@ pub struct ParamAlias {
     /// A change of its facts is worth a notice (a Digi-Key flag like NCNR)
     #[serde(default)]
     pub notify: bool,
+    /// A second landing: the field still lands where its other aliases say, and also states this definition, read
+    /// by this alias's parser; a text that does not parse states nothing here
+    #[serde(default)]
+    pub also: bool,
     pub note: String,
     #[serde(default)]
     pub created_by: String,
@@ -976,6 +980,12 @@ pub struct Renormalized {
     pub changed: u32,
     /// Moved to another definition or condition
     pub moved: u32,
+    /// Written anew on a definition an `also` alias feeds
+    #[serde(default)]
+    pub added: u32,
+    /// Retracted: an `also` alias no longer feeds the definition, or its parser no longer reads the text
+    #[serde(default)]
+    pub retracted: u32,
     /// Re-derived facts kept as text, unparsed (changed or not)
     pub unparsed: u32,
     /// Facts left alone because they could not be re-derived at all (empty text): the fact and why
@@ -996,6 +1006,12 @@ pub struct RenormDef {
     pub changed: u32,
     /// Moved here from another definition or condition
     pub moved_in: u32,
+    /// Written anew here through an `also` alias
+    #[serde(default)]
+    pub added: u32,
+    /// Retracted here (see [`Renormalized::retracted`])
+    #[serde(default)]
+    pub retracted: u32,
     pub unparsed: u32,
     pub warnings: BTreeMap<String, u32>,
     /// A few of the changes, to see what a parser does
@@ -1206,6 +1222,9 @@ pub struct AddAlias {
     /// A change of its facts is worth a notice
     #[serde(default)]
     pub notify: bool,
+    /// A second landing of the field (see [`ParamAlias::also`])
+    #[serde(default)]
+    pub also: bool,
     /// Why
     #[serde(default)]
     pub note: String,
@@ -1229,6 +1248,9 @@ pub struct EditAlias {
     pub parser_args: Option<serde_json::Value>,
     #[serde(default)]
     pub notify: Option<bool>,
+    /// Make it a second landing of the field, or a plain alias again (see [`ParamAlias::also`])
+    #[serde(default)]
+    pub also: Option<bool>,
     /// Why: kept as the alias's note and in the log
     #[serde(default)]
     pub note: String,
@@ -1266,6 +1288,9 @@ pub struct AliasResolved {
     pub alias: Option<ParamAlias>,
     /// Other aliases of the source that match as well (PRM-8 collisions), for a person to resolve
     pub ambiguous: Vec<ParamAlias>,
+    /// The `also` aliases that match: the definitions the field states as well
+    #[serde(default)]
+    pub also: Vec<ParamAlias>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
