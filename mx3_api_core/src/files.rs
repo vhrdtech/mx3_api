@@ -1,14 +1,14 @@
 //! Files kept outside the database.
 //!
-//! Files kept outside the database (WH-25 part and box photos, MAIL-9 raw mail): the DB holds a relative path
-//! into a Syncthing share on the backend host, the bytes live as files. These are the export calls that move
-//! what is still only in the DB out to files; both areas use the same request and report.
+//! Part and box photos (WH-25), and other large blobs, live as files: the DB holds a relative path into a
+//! directory on the backend host. These are the export calls that move what is still only in the DB out to
+//! files; every area with such files uses the same request and report.
 
 use serde::{Deserialize, Serialize};
 
 /// One export pass over rows without a file or with a wrong one.
 ///
-/// One pass of `POST /file/export` or `POST /mail/export`: rows with `id > after_id`, at most `limit` of them,
+/// One pass of an export endpoint such as `POST /file/export`: rows with `id > after_id`, at most `limit` of them,
 /// in id order. A row without a path gets its file written and the path set; a row with a path has its file
 /// checked (present and the right size; the content hash too with `verify`) and rewritten from the DB copy when
 /// it is missing or wrong. The client repeats with `after_id = last_id` until `left` is 0.

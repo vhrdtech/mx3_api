@@ -824,7 +824,7 @@ mod tests {
 
     #[test]
     fn merge_pairs_by_part_numbers_not_designator_overlap() {
-        // B153 rev B r7 -> r8: Q201,Q203,Q701,Q1003 (2N7002 family) and Q501,Q601 (BSS138W) move into one new
+        // B100 rev B r7 -> r8: Q201,Q203,Q701,Q1003 (2N7002 family) and Q501,Q601 (BSS138W) move into one new
         // line, BSS138W value. Designator overlap alone would pair the new line with the bigger 2N7002 line;
         // part numbers and value must win instead, so the BSS138W line's choices carry and the 2N7002 ones
         // drop, and the 2N7002 line is reported merged in, not removed (BOM-29).

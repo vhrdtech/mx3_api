@@ -765,7 +765,7 @@ impl MxClient {
     }
 }
 
-// ---------------------------------------------------------------- search (SRCH-7)
+// The parametric search over facts: SRCH-7.
 
 /// Which kind of owner a search looks for.
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Copy, Clone)]
@@ -916,7 +916,7 @@ impl MxClient {
     }
 }
 
-// ---------------------------------------------------------------- vocabulary (PRM-11)
+// The parameter vocabulary: PRM-11.
 
 pub const EP_PARAMS_DEF_REVIEW: &str = "/params/def/review";
 pub const EP_PARAMS_DEF_UNMERGE: &str = "/params/def/unmerge";
@@ -928,7 +928,7 @@ pub const EP_PARAMS_SOURCE_ADD: &str = "/params/source/add";
 pub const EP_PARAMS_SOURCE_EDIT: &str = "/params/source/edit";
 pub const EP_PARAMS_VOCAB_LOG: &str = "/params/vocab/log";
 
-// ---------------------------------------------------------------- renormalize (PRM-12)
+// Renormalizing stored values: PRM-12.
 
 pub const EP_PARAMS_RENORMALIZE: &str = "/params/renormalize";
 

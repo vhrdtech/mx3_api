@@ -1,4 +1,4 @@
-//! `GET /version` (PLT-24, no token): what the backend runs, so a client can tell core-1's build without
+//! `GET /version` (PLT-24, no token): what the backend runs, so a client can tell the backend's build without
 //! guessing from which endpoints answer 404. Used by `mx3 version` and the UI's About window.
 
 use serde::{Deserialize, Serialize};

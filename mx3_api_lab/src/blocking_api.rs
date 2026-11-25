@@ -1,4 +1,4 @@
-//! Typed blocking calls for the lab endpoints (everything except `fin` and `fw`), used by the CLI. They mirror
+//! Typed blocking calls for the lab endpoints, used by the CLI. They mirror
 //! the `Promise` calls of `MxClient` that the UI uses.
 
 use anyhow::Result;

@@ -32,7 +32,7 @@ impl BlockingClient {
         }
     }
 
-    /// Sent as `Authorization: Bearer` (the finance endpoints require it).
+    /// Sent as `Authorization: Bearer` (endpoints that need a token).
     pub fn with_token(mut self, token: Option<String>) -> Self {
         self.token = token;
         self

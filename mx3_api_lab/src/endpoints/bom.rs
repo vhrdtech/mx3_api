@@ -924,7 +924,6 @@ impl Bom {
             .map(|(id, _)| *id)
     }
 
-    // TODO: show in a table first with search/filter and save to CSV/XLS from there
     pub fn search_list(&self, assemble_count: u32) -> Vec<BomSearchListRow> {
         let mut search_list = vec![];
         for item in &self.items {
@@ -1205,7 +1204,7 @@ mod tests {
 
     #[test]
     fn resistor_value_mismatch_is_flagged() {
-        // B200A R201: the BOM says 13k3, the chosen part is 13k7.
+        // B102A R201: the BOM says 13k3, the chosen part is 13k7.
         let r = check(
             "R201",
             vec![("value", s("13k3"))],
@@ -1332,7 +1331,7 @@ mod tests {
 
     #[test]
     fn wrong_resistor_is_caught_from_its_own_mpn_when_no_supplier_knows_it() {
-        // B153A R219/R222 and B200A R201: the line wants 13k7, but the part actually placed (Yageo RC, ±1 %,
+        // B100A R219/R222 and B102A R201: the line wants 13k7, but the part actually placed (Yageo RC, ±1 %,
         // 0402) is 13k3 and no supplier has it, so the old check (supplier facts only) missed it.
         let r = check_mpn("R219", vec![("value", s("13k7"))], "RC0402FR-0713K3L");
         let m = r.unwrap_err();

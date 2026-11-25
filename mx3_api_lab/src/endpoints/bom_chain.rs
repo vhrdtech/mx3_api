@@ -3,7 +3,7 @@
 //! BOM-28: revision chains. A BOM is one revision of a chain: the PCB's `main` line of development, or a split-off
 //! variant started from another revision. A revision is working or frozen (released, used by an assembled board, or
 //! frozen by hand); a frozen one never changes again but for its description. References name a revision the way
-//! people do (`35`, `B153 rev B`, `B153B:no-usb@v1`) and resolve against the headers.
+//! people do (`35`, `B100 rev B`, `B100B:no-usb@v1`) and resolve against the headers.
 
 use std::fmt;
 use std::str::FromStr;
@@ -144,8 +144,8 @@ pub enum RevSel {
     Label(String),
 }
 
-/// A reference to a BOM revision: `35` / `#35` (that BOM), or `PCB[:CHAIN][@REV]` where PCB is `B153 rev B`,
-/// `B153/B`, `B153B` or a PCB name with one revision, CHAIN defaults to `main` and REV to the newest revision.
+/// A reference to a BOM revision: `35` / `#35` (that BOM), or `PCB[:CHAIN][@REV]` where PCB is `B100 rev B`,
+/// `B100/B`, `B100B` or a PCB name with one revision, CHAIN defaults to `main` and REV to the newest revision.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BomRef {
     Id(BomId),
@@ -200,7 +200,7 @@ impl FromStr for BomRef {
     }
 }
 
-/// The PCB a reference's PCB text names: `B153 rev B`, `B153/B`, `B153B` (name and revision run together), or a
+/// The PCB a reference's PCB text names: `B100 rev B`, `B100/B`, `B100B` (name and revision run together), or a
 /// name with only one revision.
 pub fn find_pcb<'a>(pcbs: &'a [Pcb], text: &str) -> Result<&'a Pcb, String> {
     let t = text.trim();
@@ -384,44 +384,44 @@ mod tests {
         assert_eq!("35".parse(), Ok(BomRef::Id(BomId(35))));
         assert_eq!("#35".parse(), Ok(BomRef::Id(BomId(35))));
         assert_eq!(
-            "B153 rev B".parse(),
+            "B100 rev B".parse(),
             Ok(BomRef::Chain {
-                pcb: "B153 rev B".into(),
+                pcb: "B100 rev B".into(),
                 chain: None,
                 rev: RevSel::Newest
             })
         );
         assert_eq!(
-            "B153B:no-usb@v1".parse(),
+            "B100B:no-usb@v1".parse(),
             Ok(BomRef::Chain {
-                pcb: "B153B".into(),
+                pcb: "B100B".into(),
                 chain: Some("no-usb".into()),
                 rev: RevSel::Label("v1".into())
             })
         );
         assert_eq!(
-            "B153 rev B@r3".parse::<BomRef>().map(|r| match r {
+            "B100 rev B@r3".parse::<BomRef>().map(|r| match r {
                 BomRef::Chain { rev, .. } => rev,
                 BomRef::Id(_) => RevSel::Newest,
             }),
             Ok(RevSel::Rev(3))
         );
         assert_eq!(
-            "B153B@released".parse::<BomRef>().map(|r| match r {
+            "B100B@released".parse::<BomRef>().map(|r| match r {
                 BomRef::Chain { rev, .. } => rev,
                 BomRef::Id(_) => RevSel::Newest,
             }),
             Ok(RevSel::Released)
         );
-        assert!("B153B@".parse::<BomRef>().is_err());
+        assert!("B100B@".parse::<BomRef>().is_err());
     }
 
     #[test]
     fn references_resolve_to_a_chains_revision() {
         let pcbs = [
-            pcb(14, "B153", "A"),
-            pcb(20, "B153", "B"),
-            pcb(5, "B129", "A"),
+            pcb(14, "B100", "A"),
+            pcb(20, "B100", "B"),
+            pcb(5, "B101", "A"),
         ];
         let headers = [
             header(30, 20, "main", 1, None),
@@ -433,18 +433,18 @@ mod tests {
         ];
         let id = |s: &str| resolve(&s.parse().unwrap(), &pcbs, &headers).map(|h| h.id.0);
         assert_eq!(id("31"), Ok(31));
-        assert_eq!(id("B153 rev B"), Ok(35));
-        assert_eq!(id("B153/B"), Ok(35));
-        assert_eq!(id("b153b"), Ok(35));
-        assert_eq!(id("B153B@released"), Ok(31));
-        assert_eq!(id("B153B@v1"), Ok(31));
-        assert_eq!(id("B153B@1"), Ok(30));
-        assert_eq!(id("B153B:no-usb"), Ok(40));
-        assert_eq!(id("B129"), Ok(12));
-        assert_eq!(id("B153 rev A"), Ok(27));
-        assert!(id("B153").unwrap_err().contains("ambiguous"));
-        assert!(id("B153B:nope").is_err());
-        assert!(id("B153B@v9").is_err());
+        assert_eq!(id("B100 rev B"), Ok(35));
+        assert_eq!(id("B100/B"), Ok(35));
+        assert_eq!(id("b100b"), Ok(35));
+        assert_eq!(id("B100B@released"), Ok(31));
+        assert_eq!(id("B100B@v1"), Ok(31));
+        assert_eq!(id("B100B@1"), Ok(30));
+        assert_eq!(id("B100B:no-usb"), Ok(40));
+        assert_eq!(id("B101"), Ok(12));
+        assert_eq!(id("B100 rev A"), Ok(27));
+        assert!(id("B100").unwrap_err().contains("ambiguous"));
+        assert!(id("B100B:nope").is_err());
+        assert!(id("B100B@v9").is_err());
     }
 
     #[test]

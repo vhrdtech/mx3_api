@@ -35,7 +35,7 @@ pub struct FileHeader {
     pub size: u32,
 }
 
-/// `POST /file/export`: photos still only in the DB go to files in the mx3-lab share (WH-25).
+/// `POST /file/export`: photos still only in the DB go to files in the backend's file directory (WH-25).
 pub const EP_FILE_EXPORT: &str = "/file/export";
 pub type FileExport = ExportRequest;
 pub type FileExportReport = ExportReport;

@@ -24,9 +24,9 @@ use mx3_api_core::money::Money;
 /// What the sheets need besides the BOM.
 #[derive(Clone, Debug)]
 pub struct ExportContext {
-    /// The product the board belongs to ("Portwright"); empty when unknown
+    /// The product the board belongs to ("Widget"); empty when unknown
     pub product: String,
-    /// The board ("B153 rev B")
+    /// The board ("B100 rev B")
     pub board: String,
     /// The PCB's description, shown when it says more than the product's name
     pub title: String,
@@ -730,7 +730,7 @@ pub mod fixture {
             header: BomHeader {
                 id: BomId(31),
                 pcb_id: None,
-                description: "B153A from KiCad".into(),
+                description: "B100A from KiCad".into(),
                 created: Utc::now(),
                 updated: Utc::now(),
                 user_id: UserId::hack(1),
@@ -748,7 +748,7 @@ pub mod fixture {
             groups: BTreeMap::new(),
             items,
             parameters: vec![
-                text("source file", "b153a.kicad_sch"),
+                text("source file", "b100a.kicad_sch"),
                 text("git commit", "61e54bd"),
             ],
             referenced_parts,
@@ -759,8 +759,8 @@ pub mod fixture {
 
     pub fn context() -> ExportContext {
         ExportContext {
-            product: "Portwright".into(),
-            board: "B153 rev B".into(),
+            product: "Widget".into(),
+            board: "B100 rev B".into(),
             title: "USB-C serial adapter".into(),
             makers: [
                 (100, "YAGEO"),
@@ -789,10 +789,10 @@ mod tests {
     fn export_model_of_the_fixture() {
         let e = BomExport::new(&bom(), &context());
         assert_eq!(e.suppliers, ["Digi-Key", "Mouser", "LCSC"]);
-        assert_eq!(e.file_name(), "portwright_b153_rev_b_bom_11nov2026.xlsx");
+        assert_eq!(e.file_name(), "widget_b100_rev_b_bom_11nov2026.xlsx");
         assert_eq!(
             e.source,
-            "BOM 31 · B153A from KiCad · b153a.kicad_sch @ 61e54bd"
+            "BOM 31 · B100A from KiCad · b100a.kicad_sch @ 61e54bd"
         );
         assert_eq!(e.part_count(), 6);
         assert_eq!(e.width(), 2);

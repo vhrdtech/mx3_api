@@ -40,7 +40,6 @@ pub struct CreateCompany {
 #[cfg(feature = "client")]
 impl MxClient {
     pub fn get_companies(&self, marker: &'static str) -> Promise<Vec<Company>> {
-        // let id = self.get_id();
         let (req, rx) = RequestInitiator::get_no_args("get_companies".into());
         self.send_req(req, rx, marker)
     }

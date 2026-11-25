@@ -45,7 +45,6 @@ impl ColumnRole {
         match name.trim().to_lowercase().as_str() {
             "designator" | "designators" | "reference" | "reference(s)" | "part reference"
             | "refdes" => Some(Self::Designators),
-            // TODO: what if a BOM has both value and comment?
             "value" | "comment" | "name" => Some(Self::Value),
             "quantity" | "amount" | "count" | "qty" => Some(Self::Quantity),
             "variant" | "group" => Some(Self::VariantGroup),

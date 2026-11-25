@@ -149,7 +149,6 @@ async fn handle_request(
         Some(token) => builder.bearer_auth(token),
         None => builder,
     };
-    // let builder = builder.header("request_id", req.id.0);
     let builder = if let Some(timeout) = req.timeout {
         builder.timeout(timeout)
     } else {

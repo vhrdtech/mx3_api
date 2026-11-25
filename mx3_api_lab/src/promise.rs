@@ -12,9 +12,6 @@ pub struct Promise<T> {
     state: PromiseState<T>,
     marker: &'static str,
     seen: bool,
-    // TODO: Add id to Promise
-    // TODO: Add time to Promise?
-    // TODO: Add user type, to optionally keep request info needed for processing eventual result
 }
 
 #[derive(Default)]
@@ -22,13 +19,10 @@ pub enum PromiseState<T> {
     #[default]
     None,
     /// The JSON bytes of the answer, once there
-    Waiting(/*RequestId, */ Receiver<Result<Vec<u8>, Error>>),
+    Waiting(Receiver<Result<Vec<u8>, Error>>),
     Done(Option<T>), // Option used here to make Drop and take() work
     Err(Error),
 }
-
-// #[derive(Copy, Clone)]
-// pub struct RequestId(pub(crate) u32);
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -78,7 +72,7 @@ impl<T: DeserializeOwned> Promise<T> {
     }
 
     /// Polls the promise and either returns a reference to the data or [None] if still pending.
-    /// Note that error is also an option, but this method ignores it.
+    /// An error counts as not ready here.
     pub fn ready(&mut self) -> Option<&T> {
         self.sync_poll();
         self.ready_no_poll()
@@ -122,7 +116,6 @@ impl<T: DeserializeOwned> Promise<T> {
         }
         if let PromiseState::Done(ref mut response) = core::mem::take(&mut self.state) {
             response.take()
-            // Some(response)
         } else {
             None
         }

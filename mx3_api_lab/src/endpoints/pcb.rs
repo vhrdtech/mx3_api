@@ -37,7 +37,7 @@ pub struct Pcb {
     pub modified: DateTime<Utc>,
     pub revision: String,
     pub parent_id: Option<PcbId>,
-    /// The product the board is part of ("Portwright"); empty: the parent PCB's (BOM-27)
+    /// The product the board is part of ("Widget"); empty: the parent PCB's (BOM-27)
     #[serde(default)]
     pub product: String,
 }

@@ -45,12 +45,6 @@ pub enum BoxItemMove {
         to_serial: SerialId,
         designator: String,
     },
-    // ToBox {
-    //     from_box: BoxId,
-    //     part_id: PartId,
-    //     count: u32,
-    //     to_box: BoxId,
-    // },
     ToNewBox {
         from_box: BoxId,
         part_id: PartId,

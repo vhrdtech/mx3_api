@@ -632,10 +632,10 @@ pub(crate) mod tests {
     #[test]
     fn family_is_same_name_and_parents() {
         let pcbs = [
-            pcb(1, "B153", None),
-            pcb(2, "B153", None),
-            pcb(3, "B153X", Some(1)),
-            pcb(4, "B200", None),
+            pcb(1, "B100", None),
+            pcb(2, "B100", None),
+            pcb(3, "B100X", Some(1)),
+            pcb(4, "B102", None),
         ];
         let f = family_pcbs(&pcbs, PcbId::hack(3));
         let mut f: Vec<_> = f.into_iter().map(|p| p.value()).collect();
