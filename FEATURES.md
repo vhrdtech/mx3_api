@@ -22,6 +22,7 @@ Code comments also name IDs of the mx3 application's own tracker (`PRM-17`, `BOM
 - **LAB-2 shared-bom-logic** (done): BOM filters, cost, import and part picks, revision carry-over, spreadsheet export, part suggestions, assembly planning. `mx3_api_lab/src/bom/`.
 - **LAB-3 clients** (done): `client` feature: `BlockingClient` with typed calls (`blocking_api.rs` and free functions per area) and the async `MxClient` answering with a polled `Promise`. `mx3_api_lab/src/blocking.rs`, `mx_client.rs`, `promise.rs`.
 - **LAB-4 sqlx-types** (done): `sqlx` feature: `sqlx::Type` on the id newtypes and enums. `mx3_api_lab/src/endpoints/`.
+- **LAB-5 library-types** (in progress): the document library's wire types: content hashes, uploads of extracted text, identity readings, stored text, catalog sync and its report, search, the docs list with a snapshot position, stats; limits as constants and checks for hashes, shares and paths. Application ids LIB-1. `mx3_api_lab/src/endpoints/library.rs`. Missing: the MPN lookup and coverage types.
 
 ## Dropped and superseded
 
