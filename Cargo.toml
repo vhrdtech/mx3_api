@@ -24,7 +24,7 @@ human-repr = "1.1"
 itertools = "0.14"
 # Part-number schemes: engine and scheme files, no CLI. The tag matches mx3's, so both resolve to one copy.
 # spirit-level: allow(git-dependency-pins) the tag mx3 pins; a second reference would build a second copy
-mpn_schemes = { git = "https://github.com/vhrdtech/mpn_schemes", tag = "v0.1.7", default-features = false }
+mpn_schemes = { git = "https://github.com/vhrdtech/mpn_schemes", tag = "v0.2.0", default-features = false }
 reqwest = { version = "0.12", default-features = false, features = [
   "charset",
   "http2",

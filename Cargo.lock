@@ -869,8 +869,8 @@ dependencies = [
 
 [[package]]
 name = "mpn_schemes"
-version = "0.1.7"
-source = "git+https://github.com/vhrdtech/mpn_schemes?tag=v0.1.7#51f523601f6e803ebd3a0cabbab542c38019ebde"
+version = "0.2.0"
+source = "git+https://github.com/vhrdtech/mpn_schemes?tag=v0.2.0#7f5bbad2a3c0f1c466f01247421a276727c78d72"
 dependencies = [
  "serde",
  "toml",
