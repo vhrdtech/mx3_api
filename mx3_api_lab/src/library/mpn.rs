@@ -171,6 +171,8 @@ pub fn lookup(mpn: &str, part: &Part, links: &[Link], files: &[CatalogFile]) -> 
     MpnDocs {
         mpn: mpn.to_owned(),
         maker,
+        known: matches!(part, Part::Known { .. }),
+        urls: urls.to_vec(),
         docs: found.into_iter().map(|(_, d)| d).collect(),
         why,
     }
@@ -559,6 +561,8 @@ mod tests {
             MpnDocs {
                 mpn: "P1".into(),
                 maker: Some("M".into()),
+                known: true,
+                urls: vec![],
                 docs: vec![
                     doc("h1", &["a/elsewhere.pdf"]),
                     doc("h2", &[]),
@@ -569,6 +573,8 @@ mod tests {
             MpnDocs {
                 mpn: "P2".into(),
                 maker: None,
+                known: false,
+                urls: vec![],
                 docs: vec![],
                 why: Some("not in mx3".into()),
             },

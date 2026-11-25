@@ -455,6 +455,12 @@ pub struct MpnDocs {
     /// The maker mx3 names for the part
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub maker: Option<String>,
+    /// Whether mx3 holds a part by this number
+    #[serde(default)]
+    pub known: bool,
+    /// The part's datasheet URLs, best ranked first: what a fetch by part number tries
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub urls: Vec<String>,
     #[serde(default)]
     pub docs: Vec<MpnDoc>,
     /// Why there is no document (`docs` is empty)
