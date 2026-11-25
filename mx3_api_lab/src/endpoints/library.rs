@@ -5,7 +5,7 @@
 //! computer; its text by the blake3 of its bytes (`hash`, 64 lowercase hex digits), so a file at two paths is
 //! extracted once. Computers extract text and upload it ([`Upload`]); the server keeps the catalog of which content
 //! sits at which path ([`CatalogSync`]) and answers searches ([`SearchQuery`]) and the list of documents
-//! ([`DocsQuery`]) that open and completion read offline.
+//! ([`DocsQuery`]) that open and completion read offline, and which documents a part number has ([`ByMpnQuery`]).
 //!
 //! Scopes: `lib:read` for reading, `lib:write` for uploads and the catalog.
 
@@ -31,6 +31,8 @@ pub const EP_LIB_SEARCH: &str = "/lib/search";
 pub const EP_LIB_DOCS: &str = "/lib/docs";
 /// What the library holds (lib:read)
 pub const EP_LIB_STATS: &str = "/lib/stats";
+/// The documents of part numbers (lib:read)
+pub const EP_LIB_BY_MPN: &str = "/lib/by_mpn";
 
 /// Contents per [`HaveQuery`], [`TextQuery`] or [`IdentUpdate`]
 pub const HASHES_MAX: usize = 5000;
@@ -52,6 +54,10 @@ pub const PATH_MAX: usize = 4000;
 pub const WORDS_MAX: usize = 32;
 /// Hits a search may ask for
 pub const HITS_MAX: usize = 500;
+/// Part numbers per [`ByMpnQuery`]
+pub const BY_MPN_MAX: usize = 2000;
+/// Bytes of one part number
+pub const MPN_BYTES_MAX: usize = 200;
 
 /// A content hash: blake3 of the file's bytes, 64 lowercase hex digits.
 pub fn valid_hash(s: &str) -> bool {
@@ -382,6 +388,80 @@ pub struct Stats {
     pub last_extracted: Option<DateTime<Utc>>,
 }
 
+/// The documents of these part numbers.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ByMpnQuery {
+    pub mpns: Vec<String>,
+}
+
+/// How a document was found for a part number, surest first.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum By {
+    /// A fetch by part number saved or found this content for it.
+    Link,
+    /// A file's origin (its source or referrer) is one of the part's datasheet URLs.
+    Source,
+    /// A file with no origin URL whose name is the name of one of the part's datasheet URLs.
+    Name,
+}
+
+impl By {
+    /// The word the JSON and the listing use.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Link => "link",
+            Self::Source => "source",
+            Self::Name => "name",
+        }
+    }
+}
+
+/// A file of the catalog: its share and its path below it.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct LibPath {
+    pub share: String,
+    pub path: String,
+}
+
+impl LibPath {
+    /// `share/path`, as the library lists it.
+    pub fn rel(&self) -> String {
+        format!("{}/{}", self.share, self.path)
+    }
+}
+
+/// One document of a part number.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MpnDoc {
+    pub hash: String,
+    /// The document the best path's file is
+    #[serde(default)]
+    pub ident: Ident,
+    /// The URL that led to it
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    pub by: By,
+    /// The catalog's paths holding this content now, best first: one whose origin names `url`, then by path.
+    /// Empty: no path holds it any more.
+    #[serde(default)]
+    pub paths: Vec<LibPath>,
+}
+
+/// The documents of one part number, best first; none with why.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MpnDocs {
+    pub mpn: String,
+    /// The maker mx3 names for the part
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maker: Option<String>,
+    #[serde(default)]
+    pub docs: Vec<MpnDoc>,
+    /// Why there is no document (`docs` is empty)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub why: Option<String>,
+}
+
 #[cfg(feature = "client")]
 pub fn have(c: &BlockingClient, q: &HaveQuery) -> anyhow::Result<Have> {
     c.post_json(q, EP_LIB_HAVE)
@@ -420,6 +500,12 @@ pub fn docs(c: &BlockingClient, q: &DocsQuery) -> anyhow::Result<Docs> {
 #[cfg(feature = "client")]
 pub fn stats(c: &BlockingClient) -> anyhow::Result<Stats> {
     c.post_json(&(), EP_LIB_STATS)
+}
+
+/// The documents of each part number, in the order asked, once each.
+#[cfg(feature = "client")]
+pub fn by_mpn(c: &BlockingClient, q: &ByMpnQuery) -> anyhow::Result<Vec<MpnDocs>> {
+    c.post_json(q, EP_LIB_BY_MPN)
 }
 
 #[cfg(test)]
