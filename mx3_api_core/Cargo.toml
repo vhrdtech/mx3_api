@@ -1,0 +1,27 @@
+[package]
+name = "mx3_api_core"
+description = "Shared wire types of the mx3 API: error bodies, money, file export reports, the API level"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[features]
+default = []
+# The request headers every mx3 client sends (reqwest types)
+client = ["dep:reqwest"]
+# Conversions to and from PostgreSQL types, for a backend built on sqlx
+sqlx = ["dep:sqlx"]
+
+[dependencies]
+base64.workspace = true
+reqwest = { workspace = true, optional = true }
+serde.workspace = true
+serde_json.workspace = true
+sqlx = { workspace = true, optional = true }
+
+[lints]
+workspace = true
