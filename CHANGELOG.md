@@ -6,6 +6,9 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- `Watched`, `Unwatch` and `EP_PART_WATCHED`, `EP_PART_UNWATCH`: list and stop crawler watches (LAB-8).
+- `Stubs`, `PartStubs` and `EP_PART_STUBS`: maker-less parts beside a part with a maker (LAB-9).
+- `MergePart`, `PartMerged` and `EP_PART_MERGE`: merge a maker-less stub into the part with a maker (LAB-10).
 - `CompaniesMap::find_maker`, `Company::maker_matches`: a maker name matched exact or loose through synonyms (LAB-7).
 - `MpnResult.makers` (every part of the MPN with its maker) and `MpnResult.maker` (`MakerMatch`). Wire change (LAB-7).
 - `mx3_api_core::datasheet_link`: reads `mx3:` links of KiCad Datasheet fields into part numbers, filling `${Field}` references (CORE-3).
