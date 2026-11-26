@@ -6,6 +6,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- `valid_web_url` and `Origin::web_only`: the one rule for an origin's web address; a `file://` URL is none (LAB-5).
 - `SetPcbDescription`, `EP_PCB_SET_DESCRIPTION` and `set_pcb_description` to change a PCB's description (LAB-6).
 - `mx3_api_core`: error body, money, file export report and API level, split out of mx3 (CORE-1).
 - `mx3_api_lab`: lab endpoint types, BOM logic and both clients, split out of mx3 (LAB-1).

@@ -82,6 +82,14 @@ pub fn valid_path(s: &str) -> bool {
             .all(|seg| !seg.is_empty() && seg != "." && seg != "..")
 }
 
+/// A web address an origin may hold: `https://` or `http://`, at most [`PATH_MAX`] bytes, no control character.
+/// A download's marks may name a local file (`file:///home/...`): no origin of the catalog's.
+pub fn valid_web_url(s: &str) -> bool {
+    (s.starts_with("https://") || s.starts_with("http://"))
+        && s.len() <= PATH_MAX
+        && !s.chars().any(char::is_control)
+}
+
 pub use crate::library::ident::{Ident, Src as IdentSrc};
 
 /// How the day a file entered the library is known: added by hand, fetched, or only its modification time.
@@ -104,6 +112,27 @@ pub struct Origin {
     /// The page that linked it
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub referrer: Option<String>,
+}
+
+impl Origin {
+    /// This origin with a source or referrer that is not a web address ([`valid_web_url`]) left out.
+    #[must_use]
+    pub fn web_only(self) -> Self {
+        let web = |u: Option<String>| u.filter(|u| valid_web_url(u));
+        Self {
+            source: web(self.source),
+            referrer: web(self.referrer),
+            ..self
+        }
+    }
+
+    /// Whether its source and referrer are web addresses or absent.
+    pub fn is_web_only(&self) -> bool {
+        [&self.source, &self.referrer]
+            .into_iter()
+            .flatten()
+            .all(|u| valid_web_url(u))
+    }
 }
 
 /// An extraction's quality as a computer would produce it: its version and the OCR languages it would use.
@@ -547,6 +576,34 @@ mod tests {
             assert!(!valid_path(p), "{p:?}");
         }
         assert!(!valid_path(&"x".repeat(PATH_MAX + 1)));
+    }
+
+    #[test]
+    fn web_urls_and_local_origins() {
+        assert!(valid_web_url("https://st.com/es0548.pdf"));
+        assert!(valid_web_url("http://example.com/a"));
+        for u in [
+            "file:///home/u/Downloads/0402.PDF",
+            "/home/u/a.pdf",
+            "ftp://x/a.pdf",
+            "https://a\nb",
+            "",
+        ] {
+            assert!(!valid_web_url(u), "{u:?}");
+        }
+        assert!(!valid_web_url(&format!("https://{}", "x".repeat(PATH_MAX))));
+        let o = Origin {
+            added: NaiveDate::from_ymd_opt(2026, 10, 22).unwrap(),
+            how: AddedHow::Add,
+            source: Some("file:///home/u/Downloads/a.pdf".into()),
+            referrer: Some("https://amd.com/".into()),
+        };
+        assert!(!o.is_web_only());
+        let w = o.clone().web_only();
+        assert_eq!(w.source, None);
+        assert_eq!(w.referrer.as_deref(), Some("https://amd.com/"));
+        assert_eq!((w.added, w.how), (o.added, o.how));
+        assert!(w.is_web_only());
     }
 
     #[test]
