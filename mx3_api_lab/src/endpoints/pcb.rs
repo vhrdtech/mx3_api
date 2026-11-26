@@ -78,6 +78,16 @@ pub struct SetPcbProduct {
     pub product: String,
 }
 
+/// LAB-6: set the description of a PCB
+pub const EP_PCB_SET_DESCRIPTION: &str = "/pcb/set_description";
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SetPcbDescription {
+    pub pcb_id: PcbId,
+    /// What the board is ("Type-C Serial Dongle"); empty clears it
+    pub description: String,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CreatePcbaSerial {
     pub pcb_id: PcbId,

@@ -19,7 +19,8 @@ use crate::endpoints::crawler::CrawlerCommand;
 use crate::endpoints::file::{EP_FILE_EXPORT, File, FileExport, FileExportReport, GetFile};
 use crate::endpoints::part::{LookupParts, LookupPartsResult, Part, PartId};
 use crate::endpoints::pcb::{
-    CreatePcb, CreatePcbaSerial, EP_PCB_SET_PRODUCT, Pcb, PcbId, SerialPlacement, SetPcbProduct,
+    CreatePcb, CreatePcbaSerial, EP_PCB_SET_DESCRIPTION, EP_PCB_SET_PRODUCT, Pcb, PcbId,
+    SerialPlacement, SetPcbDescription, SetPcbProduct,
 };
 use crate::endpoints::search::ParametricSearch;
 use crate::endpoints::serial::{Serial, SerialId};
@@ -297,6 +298,10 @@ impl BlockingClient {
 
     pub fn set_pcb_product(&self, q: &SetPcbProduct) -> Result<()> {
         self.post_json(q, EP_PCB_SET_PRODUCT)
+    }
+
+    pub fn set_pcb_description(&self, q: &SetPcbDescription) -> Result<()> {
+        self.post_json(q, EP_PCB_SET_DESCRIPTION)
     }
 
     pub fn get_pcbs(&self) -> Result<Vec<Pcb>> {
