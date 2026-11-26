@@ -15,6 +15,7 @@ Code comments also name IDs of the mx3 application's own tracker (`PRM-17`, `BOM
 
 - **CORE-1 shared-wire-types** (done): `ErrorBody` and `error_message`, `Money`, `files::ExportRequest`/`ExportReport`, `base64_bytes`, `API_LEVEL` and its header. `mx3_api_core/src/`.
 - **CORE-2 features-off-by-default** (done): `client` adds `client_headers()`, `sqlx` the `Money` and PostgreSQL `money` conversions; with none the crate is serde types only. `mx3_api_core/src/lib.rs`.
+- **CORE-3 datasheet-link** (done): the `mx3:` link format of a KiCad `Datasheet` field (`mx3:${Mpn1} ${Mpn2}`): `is_link`, `parse` into part numbers (percent escapes decoded, white space apart, unresolved references and `~` dropped, at most `LINK_BYTES_MAX` bytes and `LINK_MPNS_MAX` part numbers), `resolve` and `parse_resolved` filling `${Field}` references from a symbol's fields. `mx3_api_core/src/datasheet_link.rs`.
 
 ## Lab (LAB)
 

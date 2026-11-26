@@ -56,6 +56,11 @@ pub const WORDS_MAX: usize = 32;
 pub const HITS_MAX: usize = 500;
 /// Part numbers per [`ByMpnQuery`]
 pub const BY_MPN_MAX: usize = 2000;
+// every part number of one `mx3:` link fits one lookup
+const _: () = assert!(
+    mx3_api_core::datasheet_link::LINK_MPNS_MAX <= BY_MPN_MAX,
+    "an mx3: link names more part numbers than one lookup takes"
+);
 /// Bytes of one part number
 pub const MPN_BYTES_MAX: usize = 200;
 

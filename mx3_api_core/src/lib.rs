@@ -1,11 +1,12 @@
-//! Wire types shared by every domain of the mx3 API: the body of a failed answer, money, the file export report
-//! and the API level. With no features the crate is serde types only.
+//! Wire types shared by every domain of the mx3 API: the body of a failed answer, money, the file export report,
+//! the API level and the `mx3:` datasheet link format. With no features the crate is serde types and parsing only.
 //!
 //! Features (all off by default):
 //! - `client`: `client_headers`, the headers every mx3 client sends.
 //! - `sqlx`: conversions between [`money::Money`] and PostgreSQL's `money`.
 
 pub mod base64_bytes;
+pub mod datasheet_link;
 pub mod error;
 pub mod files;
 pub mod money;

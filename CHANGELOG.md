@@ -6,6 +6,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- `mx3_api_core::datasheet_link`: reads `mx3:` links of KiCad Datasheet fields into part numbers, filling `${Field}` references (CORE-3).
 - `valid_web_url` and `Origin::web_only`: the one rule for an origin's web address; a `file://` URL is none (LAB-5).
 - `SetPcbDescription`, `EP_PCB_SET_DESCRIPTION` and `set_pcb_description` to change a PCB's description (LAB-6).
 - `mx3_api_core`: error body, money, file export report and API level, split out of mx3 (CORE-1).
