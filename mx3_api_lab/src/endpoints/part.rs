@@ -56,11 +56,43 @@ pub struct LookupPartsResult {
     pub parts: Vec<LookupPartResult>,
 }
 
+/// The answer for one MPN, the maker narrowing it when asked (LAB-7).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LookupPartResult {
-    Found { id: PartId, pn: String },
+    Found {
+        id: PartId,
+        pn: String,
+    },
     NotFound,
-    NotUnique(Vec<PartId>),
+    /// Several parts carry the MPN (and the asked maker), each named with its maker
+    NotUnique(Vec<MpnMaker>),
+}
+
+impl LookupPartResult {
+    /// The ids of a [`Self::NotUnique`]; empty for the others.
+    pub fn not_unique_ids(&self) -> Vec<PartId> {
+        match self {
+            Self::NotUnique(makers) => makers.iter().map(|m| m.part).collect(),
+            Self::Found { .. } | Self::NotFound => Vec::new(),
+        }
+    }
+}
+
+/// One part of an MPN and its maker: the company's own name, a synonym's part named by the company it is a
+/// synonym of (LAB-7).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MpnMaker {
+    pub part: PartId,
+    pub maker: String,
+}
+
+/// What an asked maker name means to mx3 (LAB-7).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MakerMatch {
+    /// A company or one of its synonyms: `name` is the company's own name
+    Known { name: String },
+    /// No company or synonym by that name, exact or loose: the lookup took the maker-less parts ("Unknown")
+    Unknown,
 }
 
 #[cfg(feature = "client")]

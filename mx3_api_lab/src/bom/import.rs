@@ -328,7 +328,8 @@ impl BomTable {
                     .and_then(|idx| result.and_then(|r| r.parts.get(idx)));
                 match found {
                     Some(LookupPartResult::Found { id, .. }) => part_choices.push(*id),
-                    Some(LookupPartResult::NotUnique(ids)) => {
+                    Some(found @ LookupPartResult::NotUnique(_)) => {
+                        let ids = &found.not_unique_ids();
                         let maker = self.cell(*row, p.manufacturer_col_for(*col)).trim();
                         let maker = (!maker.is_empty()).then_some(maker);
                         match choose(ids, maker) {
@@ -607,7 +608,14 @@ mod tests {
         let facts = three_makers();
         let ids: Vec<PartId> = facts.iter().map(|f| f.part).collect();
         let result = LookupPartsResult {
-            parts: vec![LookupPartResult::NotUnique(ids)],
+            parts: vec![LookupPartResult::NotUnique(
+                ids.iter()
+                    .map(|&part| crate::endpoints::part::MpnMaker {
+                        part,
+                        maker: String::new(),
+                    })
+                    .collect(),
+            )],
         };
         let run = |t: &BomTable| {
             let p = t.prepare(ImportOptions::default());

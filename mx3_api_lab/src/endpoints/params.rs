@@ -706,7 +706,8 @@ pub fn conflict_ack(c: &BlockingClient, q: &AckConflict) -> anyhow::Result<Confl
 
 pub const EP_PARAMS_BY_MPN: &str = "/params/by_mpn";
 
-/// A part by manufacturer part number, the manufacturer narrowing it when given, as `lookup_parts` matches.
+/// A part by manufacturer part number, the manufacturer narrowing it when given, as `lookup_parts` matches: by
+/// the company's name or a synonym, exact or loose (LAB-7).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MpnKey {
     #[serde(default)]
@@ -746,6 +747,12 @@ pub struct MpnResult {
     pub missing: Vec<String>,
     pub facts: Option<Vec<Fact>>,
     pub mpn_decode: crate::endpoints::mpn::MpnReading,
+    /// Every part of this MPN with its maker, whatever maker was asked (LAB-7)
+    #[serde(default)]
+    pub makers: Vec<crate::endpoints::part::MpnMaker>,
+    /// What the asked maker means; `None` when none was asked (LAB-7)
+    #[serde(default)]
+    pub maker: Option<crate::endpoints::part::MakerMatch>,
 }
 
 /// The answer to [`ByMpn`].

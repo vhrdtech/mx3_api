@@ -6,6 +6,8 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- `CompaniesMap::find_maker`, `Company::maker_matches`: a maker name matched exact or loose through synonyms (LAB-7).
+- `MpnResult.makers` (every part of the MPN with its maker) and `MpnResult.maker` (`MakerMatch`). Wire change (LAB-7).
 - `mx3_api_core::datasheet_link`: reads `mx3:` links of KiCad Datasheet fields into part numbers, filling `${Field}` references (CORE-3).
 - `valid_web_url` and `Origin::web_only`: the one rule for an origin's web address; a `file://` URL is none (LAB-5).
 - `SetPcbDescription`, `EP_PCB_SET_DESCRIPTION` and `set_pcb_description` to change a PCB's description (LAB-6).
@@ -22,4 +24,5 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Changed
 
+- `LookupPartResult::NotUnique` carries `MpnMaker` (part and maker name) instead of bare part ids. Wire change (LAB-7).
 - Clients send `User-Agent: mx3_api/<version>`, the library's version, not the application's (CORE-2).

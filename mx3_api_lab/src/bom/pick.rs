@@ -450,10 +450,10 @@ impl BlockingClient {
         let result = self.lookup_parts(&lookup)?;
         let mut shared: HashMap<PartId, Part> = HashMap::new();
         for r in &result.parts {
-            if let LookupPartResult::NotUnique(ids) = r {
-                for id in ids {
-                    if !shared.contains_key(id) {
-                        shared.insert(*id, self.get_part(*id)?);
+            if let LookupPartResult::NotUnique(makers) = r {
+                for m in makers {
+                    if let std::collections::hash_map::Entry::Vacant(e) = shared.entry(m.part) {
+                        e.insert(self.get_part(m.part)?);
                     }
                 }
             }
