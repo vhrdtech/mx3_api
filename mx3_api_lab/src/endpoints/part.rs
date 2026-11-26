@@ -86,6 +86,13 @@ pub struct MpnMaker {
     pub maker: String,
 }
 
+impl Display for MpnMaker {
+    /// `#2223 Unknown`
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "#{} {}", self.part.0, self.maker)
+    }
+}
+
 /// What an asked maker name means to mx3 (LAB-7).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MakerMatch {
