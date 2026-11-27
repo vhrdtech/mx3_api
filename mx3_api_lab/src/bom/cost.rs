@@ -248,6 +248,7 @@ mod tests {
             is_watched: false,
             files: vec![],
             crawl: Default::default(),
+            merged_into: None,
         };
         Bom {
             id: BomId(1),

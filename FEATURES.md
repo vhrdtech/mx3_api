@@ -28,7 +28,8 @@ Code comments also name IDs of the mx3 application's own tracker (`PRM-17`, `BOM
 - **LAB-7 parts-by-maker** (done): one part per maker. `CompaniesMap::find_maker` and `Company::maker_matches` match a maker name exact or loose (case, punctuation, "Inc."/"USA" dropped) through synonyms; `LookupPartResult::NotUnique` names each part's maker (`MpnMaker`); `MpnResult.makers` and `MpnResult.maker` (`MakerMatch`). `mx3_api_lab/src/endpoints/companies.rs`, `part.rs`, `params.rs`.
 - **LAB-8 crawler-watches** (done): `Watched` lists watched parts (all or named) with interval, last and next crawl; `Unwatch` stops a watch. `mx3_api_lab/src/endpoints/watch.rs`.
 - **LAB-9 part-stubs** (done): `Stubs` lists maker-less parts whose MPN a part with a maker has, with `PartHoldings` and the parts they could merge into. `mx3_api_lab/src/endpoints/part_merge.rs`.
-- **LAB-10 part-merge** (done): `MergePart` moves a stub's holdings into the part with a maker and deletes it; `dry_run` counts; `PartMerged` says what moved. `mx3_api_lab/src/endpoints/part_merge.rs`.
+- **LAB-10 part-merge** (done): `MergePart` moves a stub's holdings into the part with a maker and retires it (LAB-11); `dry_run` counts; `PartMerged` says what moved. `mx3_api_lab/src/endpoints/part_merge.rs`.
+- **LAB-11 part-merged-into** (done): `Part.merged_into` names the part a retired stub was merged into, chain followed; `PartMerged.frozen_lines` counts frozen BOM lines left on the stub. `mx3_api_lab/src/endpoints/part.rs`.
 
 ## Dropped and superseded
 

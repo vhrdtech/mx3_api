@@ -590,6 +590,7 @@ pub mod fixture {
             is_watched: false,
             files: vec![],
             crawl: PartCrawl::default(),
+            merged_into: None,
         }
     }
 

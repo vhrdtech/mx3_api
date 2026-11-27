@@ -6,6 +6,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- `Part.merged_into` and `PartMerged.frozen_lines`: a merged stub is retired, not deleted. Wire change (LAB-11).
 - `Watched`, `Unwatch` and `EP_PART_WATCHED`, `EP_PART_UNWATCH`: list and stop crawler watches (LAB-8).
 - `Stubs`, `PartStubs` and `EP_PART_STUBS`: maker-less parts beside a part with a maker (LAB-9).
 - `MergePart`, `PartMerged` and `EP_PART_MERGE`: merge a maker-less stub into the part with a maker (LAB-10).

@@ -156,6 +156,10 @@ pub struct Part {
     /// The crawl of this part per supplier (INT-12): when and whether it failed
     #[serde(default)]
     pub crawl: PartCrawl,
+    /// The part this maker-less stub was merged into (LAB-11), followed to the end when that part was merged too;
+    /// `None` for a live part
+    #[serde(default)]
+    pub merged_into: Option<MpnMaker>,
 }
 
 /// When the crawler last looked a part up at each supplier, and what went wrong (INT-12).

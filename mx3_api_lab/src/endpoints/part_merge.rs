@@ -1,7 +1,8 @@
 //! Maker-less part stubs and their merge into the part with a maker (LAB-9, LAB-10).
 //!
 //! One part per maker: a stub (maker "Unknown") beside a part of the same MPN with a maker is the same part twice. The merge moves what the
-//! stub holds to the part and deletes the stub; the merge record keeps where things came from.
+//! stub holds to the part and retires the stub as merged into it (LAB-11); the merge record keeps where things came from. What a frozen
+//! BOM revision pins (its lines naming the stub, the facts of the stub's frozen generation) stays with the stub.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -13,7 +14,7 @@ use crate::endpoints::part::{MpnMaker, PartId};
 pub const EP_PART_STUBS: &str = "/part/stubs";
 pub const EP_PART_MERGE: &str = "/part/merge";
 
-/// What a part holds that a merge moves, by kind.
+/// What a part holds that a merge moves, by kind: frozen BOM revisions' lines and the facts their generations pin are not counted.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PartHoldings {
     /// Pieces in boxes (the sum of its box items' counts)
@@ -61,7 +62,7 @@ pub struct PartStub {
     pub stub: PartId,
     pub mpn: String,
     pub holds: PartHoldings,
-    /// A frozen BOM revision names it: it can not be merged (BOM-28)
+    /// A frozen BOM revision names it (BOM-28): a merge leaves those lines naming the stub, shown as merged into the part
     pub frozen: bool,
     /// The parts of the same MPN with a maker
     pub into: Vec<MpnMaker>,
@@ -73,10 +74,11 @@ pub struct PartStubs {
     pub stubs: Vec<PartStub>,
 }
 
-/// Merges the maker-less part `stub` into `into` (lab:write): everything it holds moves, then it is deleted.
+/// Merges the maker-less part `stub` into `into` (lab:write): everything a frozen BOM revision does not pin moves, then
+/// the stub is retired as merged into `into` (LAB-11).
 ///
-/// Refused when `stub` has a maker, the MPNs differ (ignoring case), the two are one part, or a frozen BOM revision
-/// names the stub. `dry_run` counts and changes nothing.
+/// Refused when `stub` has a maker, the MPNs differ (ignoring case), the two are one part, or either is merged already.
+/// `dry_run` counts and changes nothing.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MergePart {
     pub stub: PartId,
@@ -97,6 +99,9 @@ pub struct PartMerged {
     pub facts_superseded: i64,
     /// BOM lines that named both: the stub's row dropped, the line keeps `into` (a real choice when either was)
     pub bom_lines_joined: i64,
+    /// Lines of frozen BOM revisions that keep naming the stub, now shown as merged into `into` (LAB-11)
+    #[serde(default)]
+    pub frozen_lines: i64,
     pub dry_run: bool,
     /// The merge record's id and time; `None` on a dry run
     pub merge_id: Option<i32>,
